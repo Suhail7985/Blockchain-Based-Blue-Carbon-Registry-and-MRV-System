@@ -1,0 +1,24 @@
+{
+  "name": "blue-carbon-registry-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Blue Carbon Registry",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js",
+    "deploy:mumbai": "hardhat run scripts/deploy.js --network mumbai",
+    "test": "hardhat test",
+    "node": "hardhat node"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-ethers": "^4.0.4",
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "chai": "^6.2.2",
+    "hardhat": "^3.1.6"
+  }
+}

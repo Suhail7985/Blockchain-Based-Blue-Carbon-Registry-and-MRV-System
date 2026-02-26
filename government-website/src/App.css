@@ -1,0 +1,13 @@
+/* Minimal custom styles - most styling via Tailwind */
+
+/* Smooth transitions for interactive elements */
+button, a {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Print styles */
+@media print {
+  header, footer, nav {
+    display: none;
+  }
+}

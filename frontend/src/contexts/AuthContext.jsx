@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -13,114 +14,105 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(null);
 
-  // Initialize user from localStorage
+  // Check if user is authenticated on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('user');
+    const checkAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        setToken(storedToken);
+        try {
+          const response = await api.get('/auth/me');
+          if (response.data.success) {
+            setUser(response.data.user);
+          } else {
+            localStorage.removeItem('token');
+            setToken(null);
+          }
+        } catch (error) {
+          localStorage.removeItem('token');
+          setToken(null);
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, rememberMe = false) => {
     try {
-      // Simulate API call - replace with actual backend endpoint
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const response = await api.post('/auth/login', {
+        email,
+        password,
+        rememberMe,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const userData = data.user || {
-          id: '1',
-          email: email,
-          name: email.split('@')[0],
-          role: data.role || 'ngo', // ngo, community, panchayat, admin
-          organization: data.organization || 'Sample Organization',
-        };
-        
+      if (response.data.success) {
+        const { user: userData, token: authToken } = response.data;
         setUser(userData);
-        setToken(data.token || 'mock-token');
+        setToken(authToken);
+        localStorage.setItem('token', authToken);
         localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('token', data.token || 'mock-token');
         return { success: true };
       } else {
-        const error = await response.json();
-        return { success: false, error: error.message || 'Login failed' };
+        return { success: false, error: response.data.message || 'Login failed' };
       }
     } catch (error) {
-      // Mock login for demo - remove in production
-      const mockUser = {
-        id: '1',
-        email: email,
-        name: email.split('@')[0],
-        role: 'ngo',
-        organization: 'Sample NGO',
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Login failed. Please try again.',
       };
-      setUser(mockUser);
-      setToken('mock-token');
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      localStorage.setItem('token', 'mock-token');
-      return { success: true };
     }
   };
 
-  const register = async (userData) => {
+  const register = async (email, name, password) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
+      const response = await api.post('/auth/register', {
+        email,
+        name,
+        password,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-        setToken(data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('token', data.token);
-        return { success: true };
+      if (response.data.success) {
+        return { success: true, message: response.data.message };
       } else {
-        const error = await response.json();
-        return { success: false, error: error.message || 'Registration failed' };
+        return { success: false, error: response.data.message || 'Registration failed' };
       }
     } catch (error) {
-      // Mock registration for demo
-      const newUser = {
-        id: Date.now().toString(),
-        email: userData.email,
-        name: userData.name,
-        role: userData.role || 'ngo',
-        organization: userData.organization,
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Registration failed. Please try again.',
       };
-      setUser(newUser);
-      setToken('mock-token');
-      localStorage.setItem('user', JSON.stringify(newUser));
-      localStorage.setItem('token', 'mock-token');
-      return { success: true };
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      if (response.data.success) {
+        setUser(response.data.user);
+        return response.data.user;
+      }
+    } catch (error) {
+      console.error('Refresh user error:', error);
+    }
+    return null;
   };
 
-  const isAdmin = () => user?.role === 'admin';
-  const isNGO = () => user?.role === 'ngo';
-  const isCommunity = () => user?.role === 'community';
-  const isPanchayat = () => user?.role === 'panchayat';
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+  };
 
   const value = {
     user,
@@ -129,13 +121,9 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    isAdmin,
-    isNGO,
-    isCommunity,
-    isPanchayat,
-    isAuthenticated: !!user,
+    refreshUser,
+    isAuthenticated: !!user && !!token,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
