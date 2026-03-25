@@ -62,14 +62,12 @@ const NccrDashboard = () => {
   const [settings, setSettings] = useState(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [speciesList, setSpeciesList] = useState([]);
-  const [loadingSpecies, setLoadingSpecies] = useState(false);
   const [editingSpecies, setEditingSpecies] = useState(null);
   const [showSpeciesForm, setShowSpeciesForm] = useState(false);
   const [newSpecies, setNewSpecies] = useState({ name: '', scientificName: '', category: 'Mangrove', avgBiomassPerTreeKg: 0, carbonFraction: 0.47, co2eqFactor: 3.67 });
 
   const load = useCallback(() => {
     setLoading(true);
-    setLoadingSpecies(true);
     Promise.all([
       getAdminPlantations(PENDING_NCCR),
       getAdminStats(),
@@ -91,7 +89,6 @@ const NccrDashboard = () => {
       .catch(() => toast.error('Failed to load admin data'))
       .finally(() => {
         setLoading(false);
-        setLoadingSpecies(false);
       });
   }, []);
 
