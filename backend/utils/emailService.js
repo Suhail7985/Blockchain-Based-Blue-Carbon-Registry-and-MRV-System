@@ -82,17 +82,17 @@ export const sendPasswordResetEmail = async (email, resetUrl) => {
   const mailOptions = {
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
     to: email,
-    subject: 'Blue Carbon Registry — Password Reset Request',
+    subject: 'CarbonSetu — Password Reset Request',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
         <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <div style="text-align: center; margin-bottom: 24px;">
-            <h2 style="color: #065f46; margin: 0;">🌊 Blue Carbon Registry</h2>
+            <h2 style="color: #065f46; margin: 0;">🌊 CarbonSetu</h2>
             <p style="color: #6b7280; font-size: 13px;">Ministry of Earth Sciences — NCCR</p>
           </div>
           <h3 style="color: #1f2937;">Password Reset Request</h3>
           <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
-            You requested a password reset for your Blue Carbon Registry account. Click the button below to reset your password.
+            You requested a password reset for your CarbonSetu account. Click the button below to reset your password.
           </p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(135deg, #059669, #0284c7); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; font-size: 16px;">Reset Password</a>
@@ -152,13 +152,13 @@ export const sendPlantationStatusEmail = async (email, userName, plantationId, s
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
         <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <div style="text-align: center; margin-bottom: 24px;">
-            <h2 style="color: #065f46; margin: 0;">🌊 Blue Carbon Registry</h2>
+            <h2 style="color: #065f46; margin: 0;">🌊 CarbonSetu</h2>
             <p style="color: #6b7280; font-size: 13px;">Ministry of Earth Sciences — NCCR</p>
           </div>
           <h3 style="color: #1f2937;">Dear ${userName},</h3>
           ${bodyContent}
           <p style="color: #9ca3af; font-size: 12px; margin-top: 24px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-            © ${new Date().getFullYear()} Blue Carbon Registry — NCCR, Ministry of Earth Sciences.
+            © ${new Date().getFullYear()} CarbonSetu — NCCR, Ministry of Earth Sciences.
           </p>
         </div>
       </div>

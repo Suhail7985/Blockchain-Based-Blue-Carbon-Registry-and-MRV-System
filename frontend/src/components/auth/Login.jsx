@@ -47,7 +47,7 @@ export default function Login({ onSwitchToRegister }) {
             <FiGlobe className="text-white" size={40} />
           </div>
           <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-900 to-teal-700 bg-clip-text text-transparent mb-2">
-            National Blue Carbon Registry
+            CarbonSetu
           </h2>
           <p className="text-gray-600 text-lg">
             Sign in to your account

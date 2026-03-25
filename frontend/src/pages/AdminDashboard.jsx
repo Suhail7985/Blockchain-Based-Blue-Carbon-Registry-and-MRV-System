@@ -61,7 +61,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold mb-1">📊 NCCR Admin Dashboard</h1>
-            <p className="text-white/80">Blue Carbon Registry — National Command & Control Room</p>
+            <p className="text-white/80">CarbonSetu — National Command & Control Room</p>
           </div>
           <div className="flex gap-3">
             <Link to="/verification" className="bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all border border-white/30">

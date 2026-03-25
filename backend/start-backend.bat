@@ -1,5 +1,5 @@
 @echo off
-echo Starting Blue Carbon Registry Backend...
+echo Starting CarbonSetu Backend...
 echo.
 
 REM Check if node_modules exists

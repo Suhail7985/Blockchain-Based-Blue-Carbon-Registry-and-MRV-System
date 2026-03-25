@@ -19,7 +19,7 @@ const About = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 id="about-heading" className="text-3xl md:text-4xl font-bold text-gov-blue-900 dark:text-white mb-4">
-            About Blue Carbon Registry
+            About CarbonSetu
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             A revolutionary blockchain-based system designed to ensure transparency, accuracy, and verifiability 

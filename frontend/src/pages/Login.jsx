@@ -49,7 +49,7 @@ const Login = () => {
             Citizen Login
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Access your Blue Carbon Registry account
+            Access your CarbonSetu account
           </p>
         </div>
 

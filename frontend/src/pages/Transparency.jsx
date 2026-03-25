@@ -55,7 +55,7 @@ const Transparency = () => {
                 <span className="text-sm font-bold uppercase tracking-widest text-green-300">Blockchain Verified</span>
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-                Public Blue Carbon Registry
+                Public CarbonSetu
               </h1>
               <p className="text-lg text-blue-100 leading-relaxed max-w-2xl">
                 This page publicly displays verified blue carbon plantations and their blockchain records 

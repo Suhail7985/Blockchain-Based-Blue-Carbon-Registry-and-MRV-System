@@ -1,5 +1,5 @@
 /**
- * Plantation status lifecycle - Blue Carbon Registry
+ * Plantation status lifecycle - CarbonSetu
  * PENDING_PANCHAYAT → PENDING_NCCR → VERIFIED → BLOCKCHAIN_PENDING → BLOCKCHAIN_CONFIRMED → TOKEN_MINTED
  * Rejected entries do not proceed.
  */

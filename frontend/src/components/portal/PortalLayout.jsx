@@ -88,7 +88,7 @@ const PortalLayout = () => {
               <span className="text-white text-2xl">🌊</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">National Blue Carbon Registry</h1>
+              <h1 className="text-lg font-bold text-gray-900">CarbonSetu</h1>
               <p className="text-xs text-gray-500">MoES / NCCR</p>
             </div>
           </div>

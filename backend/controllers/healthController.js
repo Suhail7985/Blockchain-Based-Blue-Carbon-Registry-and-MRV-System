@@ -4,7 +4,7 @@
 const healthCheck = (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Blue Carbon Registry API is running',
+    message: 'CarbonSetu API is running',
     timestamp: new Date().toISOString()
   });
 };
@@ -14,7 +14,7 @@ const healthCheck = (req, res) => {
 // @access  Public
 const getRoot = (req, res) => {
   res.json({ 
-    message: 'Blue Carbon Registry API',
+    message: 'CarbonSetu API',
     version: '1.0.0',
     endpoints: {
       health: '/api/health',

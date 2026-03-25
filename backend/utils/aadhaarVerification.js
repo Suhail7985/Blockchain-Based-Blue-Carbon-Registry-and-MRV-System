@@ -1,6 +1,6 @@
 /**
  * Aadhaar Document Verification - Production-grade name normalization and fuzzy matching
- * Blue Carbon Registry - MoES / NCCR
+ * CarbonSetu - MoES / NCCR
  *
  * LEGAL COMPLIANCE NOTE:
  * System performs document-based validation using OCR for prototype stage.

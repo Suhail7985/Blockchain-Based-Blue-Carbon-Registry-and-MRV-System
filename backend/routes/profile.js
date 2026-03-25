@@ -1,6 +1,6 @@
 /**
  * Profile & KYC Routes with Aadhaar Verification
- * Blue Carbon Registry - MoES / NCCR
+ * CarbonSetu - MoES / NCCR
  */
 import express from 'express';
 import { body, validationResult } from 'express-validator';

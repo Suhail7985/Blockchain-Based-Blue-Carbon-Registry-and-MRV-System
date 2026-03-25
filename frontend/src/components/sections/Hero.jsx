@@ -27,7 +27,7 @@ const Hero = () => {
             <span className="text-lg font-semibold text-green-200">Blockchain-Powered</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-balance">
-            Blue Carbon Registry & MRV System
+            CarbonSetu: Bridging Restoration & Markets
           </h1>
           <p className="text-xl md:text-2xl text-gray-100 mb-8 text-balance">
             Transparent, verifiable monitoring and verification system for blue carbon ecosystem restoration. 
@@ -35,7 +35,7 @@ const Hero = () => {
           </p>
           <p className="text-lg text-gray-200 mb-10 max-w-3xl">
             A decentralized platform ensuring accuracy, transparency, and tokenized carbon credit generation 
-            for India's climate strategy.
+            for the global climate strategy.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">

@@ -1,5 +1,5 @@
 /**
- * Plantation status lifecycle - Blue Carbon Registry
+ * Plantation status lifecycle - CarbonSetu
  */
 export const PLANTATION_STATUS = {
   PENDING_PANCHAYAT: 'PENDING_PANCHAYAT',

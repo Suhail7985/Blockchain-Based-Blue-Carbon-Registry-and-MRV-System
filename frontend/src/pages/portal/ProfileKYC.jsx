@@ -449,7 +449,7 @@ const ProfileKYC = () => {
               className="mt-1 w-4 h-4 rounded border-gray-300 text-bc-green-600 focus:ring-bc-green-500"
             />
             <span className="text-sm text-gray-700">
-              I confirm that the information provided is accurate and I agree to the terms of the National Blue Carbon Registry.
+              I confirm that the information provided is accurate and I agree to the terms of CarbonSetu.
             </span>
           </label>
         </section>

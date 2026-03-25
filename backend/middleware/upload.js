@@ -1,7 +1,7 @@
 /**
  * File upload middleware for Aadhaar and Land documents
  * Restricts: PDF, JPG, PNG only. Max 5MB.
- * Blue Carbon Registry - MoES / NCCR
+ * CarbonSetu - MoES / NCCR
  */
 import multer from 'multer';
 import path from 'path';

@@ -27,7 +27,7 @@ const Dashboard = () => {
                 Welcome, {user.name}
               </h1>
               <p className="text-gray-600 dark:text-gray-300 mt-1">
-                Blue Carbon Registry Dashboard
+                CarbonSetu Dashboard
               </p>
             </div>
             <button

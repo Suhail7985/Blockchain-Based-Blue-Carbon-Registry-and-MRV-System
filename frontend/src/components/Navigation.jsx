@@ -74,7 +74,7 @@ export default function Navigation() {
                     <span className="text-white text-xl">🌍</span>
                   </div>
                   <h1 className="text-xl font-bold gradient-text hidden sm:block">
-                    Blue Carbon Registry
+                    CarbonSetu
                   </h1>
                 </Link>
               </motion.div>

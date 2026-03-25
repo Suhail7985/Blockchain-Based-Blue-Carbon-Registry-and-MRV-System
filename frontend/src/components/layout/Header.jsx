@@ -109,8 +109,8 @@ const Header = () => {
                 <span className="text-white font-bold text-lg">🌊</span>
               </div>
               <div>
-                <span className="text-xl font-bold text-gov-blue-900 dark:text-white">Blue Carbon</span>
-                <span className="text-sm text-gray-600 dark:text-gray-300 block">Registry & MRV System</span>
+                <span className="text-xl font-bold text-gov-blue-900 dark:text-white">CarbonSetu</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300 block">Bridging Restoration & Markets</span>
               </div>
             </div>
 

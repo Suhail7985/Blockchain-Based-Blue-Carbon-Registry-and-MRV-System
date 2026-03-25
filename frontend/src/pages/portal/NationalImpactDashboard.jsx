@@ -67,7 +67,7 @@ const NationalImpactDashboard = () => {
           National Carbon Impact
         </h1>
         <p className="text-gray-600 mt-2 text-lg">
-          Live aggregated environmental metrics from the Blue Carbon Registry
+          Live aggregated environmental metrics from CarbonSetu
         </p>
       </div>
 

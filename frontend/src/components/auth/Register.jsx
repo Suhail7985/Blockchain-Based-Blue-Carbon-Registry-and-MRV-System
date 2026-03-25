@@ -170,7 +170,7 @@ export default function Register() {
             <FiGlobe className="text-white" size={40} />
           </motion.div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Create Blue Carbon Registry Account
+            Create CarbonSetu Account
           </h1>
           <p className="text-gray-600 text-lg">
             Join the decentralized MRV network for mangrove conservation

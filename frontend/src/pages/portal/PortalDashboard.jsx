@@ -189,7 +189,7 @@ const PortalDashboard = () => {
         <p className="text-gray-600 text-sm leading-relaxed mb-4">
           Blue carbon refers to carbon captured by ocean and coastal ecosystems. Mangroves,
           seagrasses, and salt marshes sequester and store large amounts of carbon. The National
-          Blue Carbon Registry, under MoES/NCCR, tracks restoration efforts and issues verified
+          CarbonSetu, under MoES/NCCR, tracks restoration efforts and issues verified
           carbon credits for climate action.
         </p>
       </section>

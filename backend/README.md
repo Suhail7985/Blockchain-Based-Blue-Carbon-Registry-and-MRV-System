@@ -1,4 +1,4 @@
-# Backend API - Blue Carbon Registry
+# Backend API - CarbonSetu
 
 ## 📁 Folder Structure
 

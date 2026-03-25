@@ -266,7 +266,7 @@ const NccrDashboard = () => {
         NCCR Admin Dashboard
       </h1>
       <p className="text-gray-600 mb-6">
-        National Blue Carbon Registry operations console – manage Panchayats and approve verified plantations.
+        National CarbonSetu operations console – manage Panchayats and approve verified plantations.
       </p>
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">

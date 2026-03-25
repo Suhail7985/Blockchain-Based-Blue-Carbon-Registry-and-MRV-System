@@ -1,6 +1,6 @@
 /**
  * Account status states for progressive onboarding
- * Blue Carbon Registry - MoES / NCCR
+ * CarbonSetu - MoES / NCCR
  *
  * Flow: UNVERIFIED_EMAIL → PROFILE_INCOMPLETE → IDENTITY_VERIFIED → VERIFIED_PENDING_LAND
  *       → PENDING_VERIFICATION → ACTIVE

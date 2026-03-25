@@ -1,5 +1,5 @@
 /**
- * Plantation submission and listing - Blue Carbon Registry
+ * Plantation submission and listing - CarbonSetu
  * ACTIVE users only. Land must be VERIFIED. Area must not exceed land area.
  */
 import express from 'express';

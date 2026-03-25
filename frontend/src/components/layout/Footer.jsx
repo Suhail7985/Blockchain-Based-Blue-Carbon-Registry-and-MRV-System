@@ -137,7 +137,7 @@ const Footer = () => {
         <div className="border-t border-gov-blue-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-300 text-sm">
-              © {currentYear} Blue Carbon Registry & MRV System. All rights reserved.
+              © {currentYear} CarbonSetu: Bridging Restoration & Markets. All rights reserved.
             </p>
             <div className="flex flex-wrap gap-4 text-sm">
               <a

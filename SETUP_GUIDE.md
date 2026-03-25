@@ -2,7 +2,7 @@
 
 ## ✅ What's Been Built
 
-A complete, production-ready government-grade authentication system integrated into your Blue Carbon Registry project.
+A complete, production-ready government-grade authentication system integrated into your CarbonSetu project.
 
 ## 📁 Complete Folder Structure
 

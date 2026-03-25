@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting Blue Carbon Registry Backend..."
+echo "Starting CarbonSetu Backend..."
 echo ""
 
 # Check if node_modules exists
