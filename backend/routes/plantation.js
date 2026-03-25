@@ -8,10 +8,11 @@ import Plantation from '../models/Plantation.js';
 import Land from '../models/Land.js';
 import { protect } from '../middleware/auth.js';
 import { requireActive } from '../middleware/statusMiddleware.js';
-import { uploadPlantationImages } from '../middleware/upload.js';
+import { uploadPlantationImages, uploadLand } from '../middleware/upload.js';
 import { PLANTATION_STATUS } from '../constants/plantationStatus.js';
 import { LAND_STATUS } from '../constants/plantationStatus.js';
 import { auditLog } from '../utils/auditLog.js';
+import { calculateCarbon } from '../utils/carbonCalculation.js';
 
 const router = express.Router();
 
@@ -56,6 +57,34 @@ router.get('/lands', async (req, res) => {
   }
 });
 
+// POST /api/plantation/lands - Register an additional piece of land
+router.post('/lands', protect, requireActive, uploadLand, async (req, res) => {
+  try {
+    const { areaHectares, landReference } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Land document/evidence image is required.' });
+    }
+
+    if (!areaHectares || isNaN(parseFloat(areaHectares)) || parseFloat(areaHectares) <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid land area in hectares is required.' });
+    }
+
+    const newLand = await Land.create({
+      userId: req.user.id,
+      areaHectares: parseFloat(areaHectares),
+      status: LAND_STATUS.VERIFIED, // Active users can add verified land immediately
+      documentPath: req.file.filename,
+      landReference: landReference || 'Additional Land',
+      verifiedAt: new Date(),
+    });
+
+    res.json({ success: true, message: 'Land registered successfully.', land: newLand });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // GET /api/plantation - list my plantations
 router.get('/', async (req, res) => {
   try {
@@ -81,6 +110,9 @@ router.post(
     body('plantationDate').notEmpty().withMessage('Plantation date required'),
     body('lat').notEmpty().withMessage('GPS latitude is required'),
     body('lng').notEmpty().withMessage('GPS longitude is required'),
+    body('state').trim().notEmpty().withMessage('State is required'),
+    body('district').trim().notEmpty().withMessage('District is required'),
+    body('panchayatName').trim().notEmpty().withMessage('Panchayat Name is required'),
     body('declarationAccepted').equals('true').withMessage('Declaration must be accepted'),
   ],
   async (req, res) => {
@@ -90,7 +122,7 @@ router.post(
         return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
       }
 
-      const { landId, speciesName, treeCount, areaHectares, plantationDate, declarationAccepted } = req.body;
+      const { landId, speciesName, treeCount, areaHectares, plantationDate, declarationAccepted, state, district, panchayatName } = req.body;
       const land = await Land.findOne({ _id: landId, userId: req.user.id, status: LAND_STATUS.VERIFIED });
       if (!land) {
         return res.status(400).json({ success: false, message: 'Selected land not found or not verified.' });
@@ -128,6 +160,9 @@ router.post(
 
       const imagePaths = (req.files || []).map((f) => f.filename);
 
+      // New: Calculate estimated carbon based on scientific factors
+      const carbonCalculation = await calculateCarbon(parseInt(treeCount, 10), speciesName);
+
       const plantationId = generatePlantationId();
       const plantation = await Plantation.create({
         plantationId,
@@ -138,11 +173,18 @@ router.post(
         areaHectares: areaNum,
         plantationDate: dateObj,
         gpsCoordinates: { lat: parseFloat(req.body.lat), lng: parseFloat(req.body.lng) },
+        latitude: parseFloat(req.body.lat),
+        longitude: parseFloat(req.body.lng),
+        state: state.trim(),
+        district: district.trim(),
+        panchayatName: panchayatName.trim(),
         imagePaths,
         declarationAccepted: declarationAccepted === 'true',
         status: PLANTATION_STATUS.PENDING_PANCHAYAT,
         submissionTimestamp: new Date(),
+        carbonCalculation, // Store estimates
         auditLog: [{ action: 'submitted', userId: req.user.id, timestamp: new Date() }],
+        rejectionHistory: [],
       });
 
       auditLog('PLANTATION_SUBMIT', req.user.id, 'plantation_submitted', {
@@ -160,6 +202,69 @@ router.post(
       });
     } catch (e) {
       res.status(500).json({ success: false, message: e.message || 'Failed to submit plantation' });
+    }
+  }
+);
+
+// PATCH /api/plantation/:id/resubmit - allow user to correct a rejected plantation
+router.patch(
+  '/:id/resubmit',
+  uploadPlantationImages,
+  [
+    body('speciesName').optional().trim().notEmpty().withMessage('Species name required'),
+    body('treeCount').optional().isInt({ min: 1 }).withMessage('Tree count must be at least 1'),
+    body('areaHectares').optional().isFloat({ min: 0 }).withMessage('Valid plantation area required'),
+  ],
+  async (req, res) => {
+    try {
+      const plantation = await Plantation.findOne({ _id: req.params.id, userId: req.user.id });
+      if (!plantation) return res.status(404).json({ success: false, message: 'Plantation not found' });
+
+      if (plantation.status !== PLANTATION_STATUS.REJECTED) {
+        return res.status(400).json({ success: false, message: 'Only rejected plantations can be resubmitted.' });
+      }
+
+      // Move current rejection data to history
+      const lastRejection = {
+        previousStatus: plantation.status,
+        reason: plantation.panchayatVerification?.remarks || plantation.nccrVerification?.notes || 'Unknown',
+        rejectedBy: plantation.panchayatVerification?.panchayatId || plantation.nccrVerification?.adminId,
+        timestamp: plantation.panchayatVerification?.timestamp || plantation.nccrVerification?.timestamp || new Date(),
+      };
+      
+      plantation.rejectionHistory.push(lastRejection);
+
+      // Update fields if provided
+      if (req.body.speciesName) plantation.speciesName = req.body.speciesName;
+      if (req.body.treeCount) plantation.treeCount = parseInt(req.body.treeCount, 10);
+      if (req.body.areaHectares) plantation.areaHectares = parseFloat(req.body.areaHectares);
+      
+      if (req.files && req.files.length > 0) {
+        plantation.imagePaths = [...plantation.imagePaths, ...(req.files.map(f => f.filename))];
+      }
+
+      // Recalculate carbon if key fields changed
+      if (req.body.speciesName || req.body.treeCount) {
+          plantation.carbonCalculation = await calculateCarbon(plantation.treeCount, plantation.speciesName);
+      }
+
+      // Reset status for re-verification
+      plantation.status = PLANTATION_STATUS.PENDING_PANCHAYAT;
+      plantation.panchayatVerification = undefined;
+      plantation.nccrVerification = undefined;
+      
+      plantation.auditLog.push({ 
+        action: 'resubmitted', 
+        userId: req.user.id, 
+        timestamp: new Date(),
+        details: 'User corrected data after rejection'
+      });
+
+      await plantation.save();
+
+      res.json({ success: true, message: 'Plantation resubmitted for verification.', plantation });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
     }
   }
 );

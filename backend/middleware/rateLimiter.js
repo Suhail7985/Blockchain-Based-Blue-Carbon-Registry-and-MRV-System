@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 // Rate limiter for OTP sending (prevent spam)
 export const otpRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3, // Limit each IP to 3 requests per windowMs
+  max: 50, // Relaxed limit for hackathon testing
   message: {
     success: false,
     message: 'Too many OTP requests. Please try again after 15 minutes.',

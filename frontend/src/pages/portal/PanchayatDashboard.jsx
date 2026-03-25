@@ -1,53 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import StatusBanner from '../../components/portal/StatusBanner';
-import {
-  getPanchayatPlantations,
-  panchayatApprovePlantation,
+import { 
+  getPanchayatPlantations, 
+  panchayatApprovePlantation, 
   panchayatRejectPlantation,
   getPanchayatManualKyc,
   panchayatApproveManualKyc,
-  panchayatRejectManualKyc,
+  panchayatRejectManualKyc
 } from '../../services/api';
-import StatusTimeline from '../../components/plantation/StatusTimeline';
-import { buildLifecycleTimestamps } from '../../utils/plantationLifecycle';
-import { FaCheckCircle, FaTimes, FaLeaf, FaMapMarkerAlt, FaShieldAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import ActionModal from '../../components/portal/ActionModal';
+import EvidenceGallery from '../../components/portal/EvidenceGallery';
+import ReviewModal from '../../components/portal/ReviewModal';
+import { FaLeaf, FaMapMarkerAlt, FaImages, FaShieldAlt, FaChartBar, FaTree, FaCheckCircle, FaTimesCircle, FaTimes, FaExclamationTriangle, FaLandmark } from 'react-icons/fa';
+import StatusBanner from '../../components/portal/StatusBanner';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-const PLANTATION_STATUS = 'PENDING_PANCHAYAT';
+// Fix for default Leaflet marker icons in React
+const customIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 const PanchayatDashboard = () => {
   const { user } = useAuth();
   const [plantations, setPlantations] = useState([]);
-  const [manualKyc, setManualKyc] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionId, setActionId] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
+  const [manualKyc, setManualKyc] = useState([]);
+  const [filterTab, setFilterTab] = useState('PENDING_PANCHAYAT');
   const [rejectingId, setRejectingId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [actionId, setActionId] = useState(null);
+  
+  // KYC specific state
   const [kycActionId, setKycActionId] = useState(null);
   const [kycNotes, setKycNotes] = useState('');
-  const [kycRejectReason, setKycRejectReason] = useState('');
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showKycModal, setShowKycModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryTitle, setGalleryTitle] = useState('');
 
-  const load = () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    Promise.all([getPanchayatPlantations(PLANTATION_STATUS), getPanchayatManualKyc()])
-      .then(([plantRes, kycRes]) => {
-        if (plantRes.success && plantRes.plantations) setPlantations(plantRes.plantations);
-        if (kycRes.success && kycRes.users) setManualKyc(kycRes.users);
-      })
-      .catch(() => toast.error('Failed to load plantations'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
+    try {
+      const [pRes, kycRes] = await Promise.all([
+        getPanchayatPlantations(),
+        getPanchayatManualKyc()
+      ]);
+      if (pRes.success) setPlantations(pRes.plantations || []);
+      if (kycRes.success) setManualKyc(kycRes.users || []);
+    } catch (e) {
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleApprove = async (id, remarks) => {
-    setActionId(id);
+  useEffect(() => {
+    const role = user?.role;
+    if (role === 'panchayat') {
+      load();
+    }
+  }, [user?.role, load]);
+
+  const handleApprove = async (remarks) => {
+    if (!actionId) return;
     try {
-      const res = await panchayatApprovePlantation(id, remarks);
+      const res = await panchayatApprovePlantation(actionId, remarks);
       if (res.success) {
         toast.success(res.message);
         load();
@@ -56,26 +86,47 @@ const PanchayatDashboard = () => {
       toast.error(e.response?.data?.message || 'Approve failed');
     } finally {
       setActionId(null);
+      setShowApproveModal(false);
     }
   };
 
-  const handleReject = async (id) => {
-    if (rejectingId !== id || !rejectReason.trim()) {
-      toast.error('Enter a rejection reason in this row first.');
-      return;
-    }
-    setRejectingId(id);
+  const handleReject = async (remarks) => {
+    if (!actionId) return;
     try {
-      const res = await panchayatRejectPlantation(id, rejectReason);
+      const res = await panchayatRejectPlantation(actionId, remarks);
       if (res.success) {
         toast.success(res.message);
-        setRejectReason('');
-        setRejectingId(null);
         load();
       } else toast.error(res.message || 'Reject failed');
     } catch (e) {
       toast.error(e.response?.data?.message || 'Reject failed');
-      setRejectingId(null);
+    } finally {
+      setActionId(null);
+      setShowRejectModal(false);
+    }
+  };
+
+  const handleKycApprove = async (userId, notes) => {
+    try {
+      const res = await panchayatApproveManualKyc(userId, notes);
+      if (res.success) {
+        toast.success('Identity verified');
+        load();
+      } else toast.error('Failed to approve identity');
+    } catch (e) {
+      toast.error('Identity approval error');
+    }
+  };
+
+  const handleKycReject = async (userId, notes) => {
+    try {
+      const res = await panchayatRejectManualKyc(userId, notes);
+      if (res.success) {
+        toast.success('Identity rejected');
+        load();
+      } else toast.error('Failed to reject identity');
+    } catch (e) {
+      toast.error('Identity rejection error');
     }
   };
 
@@ -83,128 +134,151 @@ const PanchayatDashboard = () => {
     return <Navigate to="/portal" replace />;
   }
 
-  return (
-    <div className="max-w-5xl mx-auto">
-      <StatusBanner accountStatus={user?.accountStatus} />
-      <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-        <FaLeaf className="w-7 h-7 text-bc-green-600" />
-        Panchayat Verification
-      </h1>
-      <p className="text-gray-600 mb-6">Review and approve or reject plantation submissions in your jurisdiction.</p>
+  // Analytics Calculations
+  const pendingCount = plantations.filter(p => p.status === 'PENDING_PANCHAYAT').length;
+  const approvedCount = plantations.filter(p => p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED').length;
+  const rejectedCount = plantations.filter(p => p.status === 'REJECTED').length;
+  const totalCarbonInfo = plantations
+    .filter(p => p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED')
+    .reduce((acc, p) => acc + (p.carbonCalculation?.co2eq || 0), 0);
 
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Manual Identity Verification Queue</h2>
-        {loading ? (
-          <div className="border border-gray-200 rounded-lg p-6 text-center text-gray-500">Loading...</div>
-        ) : manualKyc.length === 0 ? (
-          <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-500 text-sm">
-            No users currently pending manual identity verification.
+  // Map center calculation (average of all plantation coords, or India default)
+  const mapCenter = plantations.filter(p => p.latitude && p.longitude).length > 0 
+    ? [
+        plantations.reduce((acc, p) => acc + parseFloat(p.latitude || 0), 0) / plantations.filter(p => p.latitude).length,
+        plantations.reduce((acc, p) => acc + parseFloat(p.longitude || 0), 0) / plantations.filter(p => p.longitude).length
+      ]
+    : [20.5937, 78.9629];
+
+  return (
+    <div className="max-w-6xl mx-auto pb-12">
+      <StatusBanner accountStatus={user?.accountStatus} />
+      
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Local Panchayat Registry Dashboard</h1>
+          <div className="flex items-center gap-2 mt-1 text-bc-green-700">
+             <FaLandmark className="w-4 h-4" />
+             <span className="text-sm font-semibold uppercase tracking-wider">Jurisdiction: {user?.district}, {user?.state}</span>
           </div>
+        </div>
+        <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-200">
+          {/* Placeholder for potential future filter/action buttons */}
+        </div>
+      </div>
+
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center">
+          <div className="p-3 bg-amber-100 text-amber-600 rounded-lg mr-4">
+            <FaChartBar className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Pending Verifications</p>
+            <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center">
+          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg mr-4">
+            <FaCheckCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Approved Plantations</p>
+            <p className="text-2xl font-bold text-gray-900">{approvedCount}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center">
+          <div className="p-3 bg-red-100 text-red-600 rounded-lg mr-4">
+            <FaTimesCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Rejected</p>
+            <p className="text-2xl font-bold text-gray-900">{rejectedCount}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center">
+          <div className="p-3 bg-blue-100 text-blue-600 rounded-lg mr-4">
+            <FaTree className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Carbon Impact (CO₂)</p>
+            <p className="text-2xl font-bold text-gray-900">{totalCarbonInfo.toLocaleString()} tons</p>
+          </div>
+        </div>
+      </div>
+
+      {/* GIS Map View */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <FaMapMarkerAlt className="text-gray-500" />
+            Jurisdiction Map View
+          </h2>
+        </div>
+        <div className="h-[400px] w-full relative z-0">
+          <MapContainer center={mapCenter} zoom={plantations.length > 0 ? 11 : 4} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {plantations.filter(p => p.latitude && p.longitude).map((p) => (
+              <Marker key={p._id} position={[parseFloat(p.latitude), parseFloat(p.longitude)]} icon={customIcon}>
+                <Popup className="custom-popup">
+                  <div className="p-1">
+                    <p className="font-bold text-sm mb-1">{p.plantationId}</p>
+                    <p className="text-xs mb-1"><strong>Owner:</strong> {p.userId?.name || 'Unknown'}</p>
+                    <p className="text-xs mb-1"><strong>Trees:</strong> {p.treeCount}</p>
+                    <p className="text-xs mb-1"><strong>Area:</strong> {p.areaHectares} ha</p>
+                    <p className="text-xs mt-2 font-semibold">
+                      Status: <span className={p.status === 'PENDING_PANCHAYAT' ? 'text-amber-600' : p.status === 'REJECTED' ? 'text-red-600' : 'text-emerald-600'}>{p.status.replace(/_/g, ' ')}</span>
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        </div>
+      </section>
+
+      {/* manual KYC Queue */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 py-6 mb-8">
+        <div className="px-6 mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Manual Identity Verification Queue</h2>
+        </div>
+        {loading ? (
+          <div className="px-6 text-gray-500 text-sm">Loading...</div>
+        ) : manualKyc.length === 0 ? (
+          <div className="px-6 text-gray-500 text-sm">No users currently pending manual identity verification.</div>
         ) : (
-          <div className="overflow-x-auto border border-gray-200 rounded-lg">
+          <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Reference</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Applicant</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Reason</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Document</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase">Applicant</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase">Document</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {manualKyc.map((u) => (
                   <tr key={u._id}>
-                    <td className="px-4 py-2 font-mono text-xs text-gray-700">{u.referenceId || '—'}</td>
-                    <td className="px-4 py-2 text-gray-900">
-                      <div className="font-medium">{u.name}</div>
-                      <div className="text-xs text-gray-500">{u.email}</div>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{u.name}</div>
                       <div className="text-xs text-gray-500">{u.district}, {u.state}</div>
                     </td>
-                    <td className="px-4 py-2 text-xs text-gray-700">
-                      {u.manualReview?.reason || 'Manual review'}
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-medium text-bc-green-700 bg-bc-green-50 px-2 py-1 rounded">
+                        {u.aadhaarDocumentPath ? 'Aadhaar Provided' : 'Missing'}
+                      </span>
                     </td>
-                    <td className="px-4 py-2 text-sm">
-                      {u.aadhaarDocumentPath ? (
-                        <a
-                          href={`${(process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '')}/uploads/aadhaar/${u.aadhaarDocumentPath}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-bc-green-700 hover:underline"
-                        >
-                          View Aadhaar
-                        </a>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <input
-                          type="text"
-                          placeholder="Notes (optional)"
-                          value={kycActionId === u._id ? kycNotes : ''}
-                          onChange={(e) => {
-                            setKycNotes(e.target.value);
-                            setKycActionId(u._id);
-                          }}
-                          className="min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            setKycActionId(u._id);
-                            try {
-                              const res = await panchayatApproveManualKyc(u._id, kycNotes);
-                              if (res.success) {
-                                toast.success(res.message);
-                                setKycNotes('');
-                                setKycActionId(null);
-                                load();
-                              } else toast.error(res.message || 'Approve failed');
-                            } catch (e) {
-                              toast.error(e.response?.data?.message || 'Approve failed');
-                            }
-                          }}
-                          className="px-3 py-2 bg-bc-green-600 text-white rounded-lg text-sm font-medium hover:bg-bc-green-700"
-                        >
-                          Approve
-                        </button>
-                        <input
-                          type="text"
-                          placeholder="Reject reason"
-                          value={kycActionId === u._id ? kycRejectReason : ''}
-                          onChange={(e) => {
-                            setKycRejectReason(e.target.value);
-                            setKycActionId(u._id);
-                          }}
-                          className="min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!kycRejectReason.trim()) {
-                              toast.error('Enter a rejection reason');
-                              return;
-                            }
-                            setKycActionId(u._id);
-                            try {
-                              const res = await panchayatRejectManualKyc(u._id, kycRejectReason);
-                              if (res.success) {
-                                toast.success(res.message);
-                                setKycRejectReason('');
-                                setKycActionId(null);
-                                load();
-                              } else toast.error(res.message || 'Reject failed');
-                            } catch (e) {
-                              toast.error(e.response?.data?.message || 'Reject failed');
-                            }
-                          }}
-                          className="px-3 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-medium hover:bg-red-200"
-                        >
-                          Reject
-                        </button>
-                      </div>
+                    <td className="px-6 py-4">
+                       <button 
+                         onClick={() => { setSelectedUser(u); setShowKycModal(true); }}
+                         className="px-4 py-2 bg-bc-green-600 hover:bg-bc-green-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+                       >
+                         <FaShieldAlt /> Review Identity
+                       </button>
                     </td>
                   </tr>
                 ))}
@@ -214,127 +288,192 @@ const PanchayatDashboard = () => {
         )}
       </section>
 
-      {loading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">Loading...</div>
-      ) : plantations.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-          No pending plantations for verification.
+      {/* Plantations Table */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="flex border-b border-gray-200 text-sm font-medium px-6 pt-4">
+          <button
+            type="button"
+            onClick={() => setFilterTab('PENDING_PANCHAYAT')}
+            className={`pb-3 mr-6 transition-colors ${
+              filterTab === 'PENDING_PANCHAYAT' ? 'border-b-2 border-bc-green-600 text-bc-green-700' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Pending Verifications
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterTab('APPROVED')}
+            className={`pb-3 mr-6 transition-colors ${
+              filterTab === 'APPROVED' ? 'border-b-2 border-bc-green-600 text-bc-green-700' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Approved
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterTab('REJECTED')}
+            className={`pb-3 transition-colors ${
+              filterTab === 'REJECTED' ? 'border-b-2 border-bc-green-600 text-bc-green-700' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Rejected
+          </button>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {plantations.map((p) => (
-            <div
-              key={p._id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
-            >
-              <div className="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-medium text-gray-900">{p.plantationId}</span>
-                  {p.risk && (
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                        p.risk.riskScore === 'HIGH'
-                          ? 'bg-red-100 text-red-800'
-                          : p.risk.riskScore === 'MEDIUM'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-emerald-100 text-emerald-800'
-                      }`}
-                    >
-                      <FaShieldAlt className="w-3 h-3" />
-                      Risk: {p.risk.riskScore}
-                    </span>
+
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Loading...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50/50">
+                <tr>
+                  <th className="px-6 py-4 text-left font-medium text-gray-500">Plantation ID</th>
+                  <th className="px-6 py-4 text-left font-medium text-gray-500">Owner Name</th>
+                  <th className="px-6 py-4 text-left font-medium text-gray-500">Location</th>
+                  <th className="px-6 py-4 text-left font-medium text-gray-500">Details</th>
+                  <th className="px-6 py-4 text-left font-medium text-gray-500">Evidence</th>
+                  <th className="px-6 py-4 text-left font-medium text-gray-500">Status</th>
+                  {filterTab === 'PENDING_PANCHAYAT' && (
+                    <th className="px-6 py-4 text-center font-medium text-gray-500">Actions</th>
                   )}
-                </div>
-                <span className="px-3 py-1 rounded-full text-sm bg-amber-100 text-amber-800">Pending Panchayat</span>
-              </div>
-              <div className="px-6 py-4 grid sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Applicant</p>
-                  <p className="font-medium text-gray-900">{p.userId?.name}</p>
-                  <p className="text-sm text-gray-600">{p.userId?.email}</p>
-                  {p.userId?.referenceId && (
-                    <p className="text-xs text-gray-500 mt-1">Ref: {p.userId.referenceId}</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Land reference</p>
-                  <p className="text-gray-900">{p.landId?.landReference || '—'}</p>
-                  <p className="text-sm text-gray-600">{p.landId?.areaHectares} ha registered</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Species</p>
-                  <p className="font-medium text-gray-900">{p.speciesName}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Tree count / Area</p>
-                  <p className="text-gray-900">{p.treeCount} trees · {p.areaHectares} ha</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Plantation date</p>
-                  <p className="text-gray-900">{p.plantationDate ? new Date(p.plantationDate).toLocaleDateString() : '—'}</p>
-                </div>
-                {p.gpsCoordinates && (p.gpsCoordinates.lat || p.gpsCoordinates.lng) && (
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                    <FaMapMarkerAlt className="w-4 h-4" />
-                    {p.gpsCoordinates.lat}, {p.gpsCoordinates.lng}
-                  </div>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {plantations.filter(p => {
+                  if (filterTab === 'APPROVED') return p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED';
+                  return p.status === filterTab;
+                }).map(p => (
+                  <tr key={p._id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-mono text-xs font-semibold text-gray-900">{p.plantationId}</div>
+                      {p.risk?.riskScore === 'HIGH' && (
+                        <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
+                          <FaShieldAlt /> High Risk
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{p.userId?.name || 'Unknown'}</div>
+                      <div className="text-xs text-gray-500">{p.userId?.email}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-gray-900">{p.panchayatName || p.district || 'Location unrecorded'}</div>
+                      <div className="text-xs text-gray-500">{p.state}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{p.treeCount} trees</div>
+                      <div className="text-xs text-gray-500">{p.areaHectares} ha • {p.speciesName}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {p.imagePaths?.length > 0 ? (
+                        <button
+                          onClick={() => {
+                            setGalleryImages(p.imagePaths.map(img => `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/uploads/plantations/${img}`));
+                            setGalleryTitle(`Evidence: ${p.plantationId}`);
+                          }}
+                          className="flex items-center gap-2 text-bc-green-700 hover:text-bc-green-800 font-medium bg-bc-green-50 px-3 py-1.5 rounded-lg transition-all"
+                        >
+                          <FaImages className="w-4 h-4" />
+                          Inspect ({p.imagePaths.length})
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 italic">No images</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                        p.status === 'PENDING_PANCHAYAT' ? 'bg-amber-100 text-amber-800' :
+                        p.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                        'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {p.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    {filterTab === 'PENDING_PANCHAYAT' && (
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => { setActionId(p._id); setShowApproveModal(true); }}
+                            className={`px-3 py-1.5 text-white text-xs font-bold rounded-lg shadow-sm transition-all w-full flex items-center justify-center gap-1 ${
+                              p.risk?.riskScore === 'LOW' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'
+                            }`}
+                          >
+                            <FaCheckCircle className="w-3 h-3" />
+                            {p.risk?.riskScore === 'LOW' ? 'Final Verify' : 'Approve & Escalate'}
+                          </button>
+                          
+                          <button
+                            onClick={() => { setActionId(p._id); setShowRejectModal(true); }}
+                            className="px-3 py-1.5 bg-white border border-red-200 hover:border-red-300 hover:bg-red-50 text-red-700 text-xs font-bold rounded-lg shadow-sm transition-all w-full flex items-center justify-center gap-1"
+                          >
+                            <FaTimesCircle className="w-3 h-3" /> Reject
+                          </button>
+
+                          {p.rejectionHistory?.length > 0 && (
+                            <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 uppercase tracking-tighter">
+                              <FaExclamationTriangle className="w-2.5 h-2.5" /> Resubmitted
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+                {plantations.filter(p => {
+                  if (filterTab === 'APPROVED') return p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED';
+                  return p.status === filterTab;
+                }).length === 0 && (
+                  <tr>
+                    <td colSpan={filterTab === 'PENDING_PANCHAYAT' ? 7 : 6} className="px-6 py-12 text-center text-gray-500">
+                      No plantations found in this category.
+                    </td>
+                  </tr>
                 )}
-              </div>
-              {p.imagePaths && p.imagePaths.length > 0 && (
-                <div className="px-6 py-2 border-t border-gray-100">
-                  <p className="text-sm text-gray-500 mb-2">Uploaded images</p>
-                  <div className="flex flex-wrap gap-2">
-                    {p.imagePaths.map((filename, i) => (
-                      <a
-                        key={i}
-                        href={`${(process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '')}/uploads/plantation/${filename}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-bc-green-600 hover:underline"
-                      >
-                        Image {i + 1}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="px-6 py-3 border-t border-gray-100">
-                <StatusTimeline status={p.status} timestamps={buildLifecycleTimestamps(p)} compact />
-              </div>
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-3 items-center">
-                <button
-                  type="button"
-                  onClick={() => handleApprove(p._id)}
-                  disabled={actionId === p._id}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-bc-green-600 text-white rounded-lg font-medium hover:bg-bc-green-700 disabled:opacity-50"
-                >
-                  <FaCheckCircle className="w-4 h-4" />
-                  {actionId === p._id ? 'Processing...' : 'Approve'}
-                </button>
-                <input
-                  type="text"
-                  placeholder="Rejection reason (required to reject)"
-                  value={rejectingId === p._id ? rejectReason : ''}
-                  onChange={(e) => {
-                    setRejectReason(e.target.value);
-                    setRejectingId(p._id);
-                  }}
-                  className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleReject(p._id)}
-                  disabled={rejectingId !== p._id || !rejectReason.trim()}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-800 rounded-lg font-medium hover:bg-red-200 disabled:opacity-50"
-                >
-                  <FaTimes className="w-4 h-4" />
-                  Reject
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Modals & Overlays */}
+      <EvidenceGallery 
+        isOpen={galleryImages.length > 0} 
+        onClose={() => setGalleryImages([])} 
+        images={galleryImages} 
+        title={galleryTitle} 
+      />
+
+      <ReviewModal 
+        isOpen={showKycModal} 
+        onClose={() => { setShowKycModal(false); setSelectedUser(null); }} 
+        user={selectedUser} 
+        onApprove={handleKycApprove} 
+        onReject={handleKycReject} 
+      />
+
+      <ActionModal
+        isOpen={showApproveModal}
+        onClose={() => { setShowApproveModal(false); setActionId(null); }}
+        onConfirm={handleApprove}
+        mode="approve"
+        title={plantations.find(p => p._id === actionId)?.risk?.riskScore === 'LOW' ? 'Autonomous Final Approval' : 'Approve & Escalate to NCCR'}
+        message={
+          plantations.find(p => p._id === actionId)?.risk?.riskScore === 'LOW' 
+          ? "This is a low-risk case. Your approval will finalize the record and trigger token minting immediately."
+          : "This case has been flagged for investigation. Your approval will move it to NCCR for final national verification."
+        }
+        placeholder="Add verification remarks (optional)..."
+      />
+
+      <ActionModal
+        isOpen={showRejectModal}
+        onClose={() => { setShowRejectModal(false); setActionId(null); }}
+        onConfirm={handleReject}
+        mode="reject"
+        title="Reject Plantation"
+        message="Please provide a clear reason for rejection. The citizen will be able to see these remarks and resubmit corrections."
+        placeholder="Reason for rejection (mandatory)..."
+      />
     </div>
   );
 };

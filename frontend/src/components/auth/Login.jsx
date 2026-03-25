@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { FiMail, FiLock, FiLogIn, FiLoader, FiXCircle, FiGlobe } from 'react-icons/fi';
@@ -25,10 +26,10 @@ export default function Login({ onSwitchToRegister }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-cyan-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background decorative elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-green-400/20 to-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-teal-400/20 to-blue-800/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-900/10 to-teal-500/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -42,11 +43,11 @@ export default function Login({ onSwitchToRegister }) {
           transition={{ delay: 0.2 }}
           className="text-center mb-8"
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500 to-blue-500 mb-4 shadow-xl">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-900 to-teal-600 mb-4 shadow-xl">
             <FiGlobe className="text-white" size={40} />
           </div>
-          <h2 className="text-4xl font-bold gradient-text mb-2">
-            Blue Carbon Registry
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-900 to-teal-700 bg-clip-text text-transparent mb-2">
+            National Blue Carbon Registry
           </h2>
           <p className="text-gray-600 text-lg">
             Sign in to your account
@@ -57,7 +58,7 @@ export default function Login({ onSwitchToRegister }) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass rounded-2xl shadow-2xl p-8 border border-white/20 space-y-6"
+          className="bg-white/90 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] p-8 border border-white/40 space-y-6"
           onSubmit={handleSubmit}
         >
           {error && (
@@ -82,7 +83,7 @@ export default function Login({ onSwitchToRegister }) {
                 type="email"
                 autoComplete="email"
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white/80 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-white"
                 placeholder="your.email@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -99,7 +100,7 @@ export default function Login({ onSwitchToRegister }) {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white/80 backdrop-blur-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-white"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -113,7 +114,7 @@ export default function Login({ onSwitchToRegister }) {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded cursor-pointer"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 cursor-pointer">
                 Remember me
@@ -121,9 +122,9 @@ export default function Login({ onSwitchToRegister }) {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-semibold text-green-600 hover:text-green-700 transition-colors">
+              <Link to="/forgot-password" className="font-semibold text-teal-600 hover:text-teal-700 transition-colors">
                 Forgot password?
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -132,7 +133,7 @@ export default function Login({ onSwitchToRegister }) {
             disabled={loading}
             whileHover={{ scale: loading ? 1 : 1.02 }}
             whileTap={{ scale: loading ? 1 : 0.98 }}
-            className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full bg-gradient-to-r from-blue-900 to-teal-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:shadow-teal-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? (
               <>

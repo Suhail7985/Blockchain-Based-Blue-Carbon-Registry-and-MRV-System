@@ -3,7 +3,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
 import { getCarbonSummary } from '../../services/api';
-import { FaCoins, FaLock } from 'react-icons/fa';
+import { FaCoins, FaLock, FaWallet, FaExternalLinkAlt } from 'react-icons/fa';
+
+const EXPLORER_TX = 'https://amoy.polygonscan.com/tx';
+const EXPLORER_ADDRESS = 'https://amoy.polygonscan.com/address';
 
 const CarbonCredits = () => {
   const { user } = useAuth();
@@ -37,6 +40,9 @@ const CarbonCredits = () => {
   const totalTokens = data?.totalTokens ?? 0;
   const verifiedCount = data?.verifiedPlantations ?? 0;
   const history = data?.history ?? [];
+  const walletAddress = data?.walletAddress ?? null;
+  const walletBalance = data?.walletBalance != null ? String(data.walletBalance) : null;
+  const explorerAddressUrl = data?.explorerAddressUrl || (walletAddress ? `${EXPLORER_ADDRESS}/${walletAddress}` : null);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -45,7 +51,7 @@ const CarbonCredits = () => {
         Carbon Credits
       </h1>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <p className="text-sm text-gray-500">Total CO₂ Captured</p>
           <p className="text-2xl font-bold text-gray-900">{totalCO2} tCO₂e</p>
@@ -64,6 +70,37 @@ const CarbonCredits = () => {
         </div>
       </div>
 
+      {walletAddress && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <FaWallet className="w-5 h-5 text-bc-green-600" />
+            Wallet & On-Chain Balance
+          </h2>
+          <p className="text-sm text-gray-600 font-mono break-all mb-2">{walletAddress}</p>
+          {walletBalance != null && (
+            <p className="text-lg font-bold text-bc-green-600 mb-2">Balance: {Number(walletBalance).toFixed(4)} BCC</p>
+          )}
+          {explorerAddressUrl && (
+            <a
+              href={explorerAddressUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-bc-green-600 hover:underline"
+            >
+              View on Polygon Explorer <FaExternalLinkAlt className="w-3 h-3" />
+            </a>
+          )}
+        </div>
+      )}
+
+      {!walletAddress && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+          <p className="text-sm text-amber-800">
+            Add your wallet address in <strong>Profile & KYC</strong> to receive BCC tokens after NCCR approval.
+          </p>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Token History</h2>
@@ -81,6 +118,7 @@ const CarbonCredits = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">CO₂e (t)</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Tokens</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Blockchain</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -90,6 +128,20 @@ const CarbonCredits = () => {
                     <td className="px-6 py-3 text-sm text-gray-600">{new Date(h.date).toLocaleDateString()}</td>
                     <td className="px-6 py-3 text-sm text-right text-gray-900">{h.co2eq}</td>
                     <td className="px-6 py-3 text-sm text-right text-bc-green-600 font-medium">{h.tokens}</td>
+                    <td className="px-6 py-3 text-sm text-right">
+                      {h.tokenTxHash ? (
+                        <a
+                          href={`${EXPLORER_TX}/${h.tokenTxHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-bc-green-600 hover:underline"
+                        >
+                          View tx <FaExternalLinkAlt className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

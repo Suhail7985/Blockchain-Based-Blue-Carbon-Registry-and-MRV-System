@@ -1,27 +1,35 @@
-import "@nomicfoundation/hardhat-toolbox";
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
-export default {
+module.exports = {
   solidity: {
-    version: "0.8.19",
+    version: "0.8.20",
     settings: {
       optimizer: {
         enabled: true,
         runs: 200
-      }
+      },
+      viaIR: true
     }
   },
+
   networks: {
     hardhat: {
       chainId: 31337
     },
-    mumbai: {
-      url: process.env.BLOCKCHAIN_RPC_URL || "https://rpc-mumbai.maticvigil.com",
-      accounts: process.env.BLOCKCHAIN_PRIVATE_KEY ? [process.env.BLOCKCHAIN_PRIVATE_KEY] : []
+
+    amoy: {
+      url: process.env.AMOY_RPC_URL || "https://rpc-amoy.polygon.technology",
+      accounts: process.env.AMOY_PRIVATE_KEY
+        ? [process.env.AMOY_PRIVATE_KEY]
+        : []
     },
+
     localhost: {
       url: "http://127.0.0.1:8545"
     }
   },
+
   paths: {
     sources: "./contracts",
     tests: "./test",

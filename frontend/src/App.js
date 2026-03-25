@@ -6,6 +6,10 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerifyOTP from './pages/VerifyOTP';
 import CompleteRegistration from './pages/CompleteRegistration';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Transparency from './pages/Transparency';
+import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PortalLayout from './components/portal/PortalLayout';
 import PortalDashboard from './pages/portal/PortalDashboard';
@@ -19,6 +23,10 @@ import PanchayatDashboard from './pages/portal/PanchayatDashboard';
 import NccrDashboard from './pages/portal/NccrDashboard';
 import NgoDashboard from './pages/portal/NgoDashboard';
 import CarbonLedger from './pages/portal/CarbonLedger';
+import MyPlantations from './pages/MyPlantations';
+import NationalImpactDashboard from './pages/portal/NationalImpactDashboard';
+import PlantationGIS from './pages/portal/PlantationGIS';
+import HealthMonitoring from './pages/portal/HealthMonitoring';
 import './App.css';
 
 function PortalIndex() {
@@ -39,6 +47,7 @@ function App() {
         }}
       >
         <div className="App">
+          <Toaster position="top-right" />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
@@ -46,6 +55,9 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/complete-registration" element={<CompleteRegistration />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/transparency" element={<Transparency />} />
 
             {/* Portal - Protected */}
             <Route
@@ -60,6 +72,7 @@ function App() {
               <Route path="profile" element={<ProfileKYC />} />
               <Route path="land" element={<LandRegistration />} />
               <Route path="plantation" element={<PlantationSubmission />} />
+              <Route path="my-plantations" element={<MyPlantations />} />
               <Route path="carbon" element={<CarbonCredits />} />
               <Route path="blockchain" element={<BlockchainRecords />} />
               <Route path="ledger" element={<CarbonLedger />} />
@@ -67,6 +80,9 @@ function App() {
               <Route path="panchayat" element={<PanchayatDashboard />} />
               <Route path="nccr" element={<NccrDashboard />} />
               <Route path="ngo" element={<NgoDashboard />} />
+              <Route path="impact" element={<NationalImpactDashboard />} />
+              <Route path="gis" element={<PlantationGIS />} />
+              <Route path="health" element={<HealthMonitoring />} />
             </Route>
 
             {/* Redirect legacy dashboard */}

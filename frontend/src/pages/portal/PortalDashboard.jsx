@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
 import { getVerifiedLands, getMyPlantations, getCarbonSummary } from '../../services/api';
+import WalletConnect from '../../components/WalletConnect';
 import {
   FaUser,
   FaCheckCircle,
@@ -137,7 +138,7 @@ const PortalDashboard = () => {
               </p>
               <p className="text-xl font-bold text-bc-green-800 mt-1">{carbon?.totalTokens ?? 0}</p>
             </div>
-            <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 col-span-2 sm:col-span-3 lg:col-span-2">
+            <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
               <p className="text-sm text-gray-500 flex items-center gap-1">
                 <FaLink className="w-4 h-4" /> Blockchain Records
               </p>
@@ -146,6 +147,10 @@ const PortalDashboard = () => {
                 View records →
               </Link>
             </div>
+          </div>
+          
+          <div className="mt-6">
+            <WalletConnect />
           </div>
         </section>
       )}

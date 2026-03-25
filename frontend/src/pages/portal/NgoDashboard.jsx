@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { FaLeaf, FaUsers, FaMapMarkedAlt, FaCoins } from 'react-icons/fa';
-import { getNgoManualKyc, ngoApproveManualKyc, ngoRejectManualKyc } from '../../services/api';
+import { getNgoManualKyc, ngoApproveManualKyc, ngoRejectManualKyc, getNgoPendingNccrPlantations } from '../../services/api';
 import toast from 'react-hot-toast';
 
 const NgoDashboard = () => {
@@ -13,6 +14,8 @@ const NgoDashboard = () => {
   const [actionId, setActionId] = useState(null);
   const [notes, setNotes] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [pendingPlantations, setPendingPlantations] = useState([]);
+  const [loadingPlantations, setLoadingPlantations] = useState(true);
 
   const load = () => {
     setLoading(true);
@@ -26,6 +29,13 @@ const NgoDashboard = () => {
 
   useEffect(() => {
     load();
+    setLoadingPlantations(true);
+    getNgoPendingNccrPlantations()
+      .then((r) => {
+        if (r.success && r.plantations) setPendingPlantations(r.plantations);
+      })
+      .catch(() => toast.error('Failed to load pending plantations'))
+      .finally(() => setLoadingPlantations(false));
   }, []);
 
   if (user?.role !== 'ngo') {
@@ -113,7 +123,7 @@ const NgoDashboard = () => {
                     <td className="px-4 py-2 text-sm">
                       {u.aadhaarDocumentPath ? (
                         <a
-                          href={`${(process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '')}/uploads/aadhaar/${u.aadhaarDocumentPath}`}
+                          href={`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/uploads/aadhaar/${u.aadhaarDocumentPath}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-bc-green-700 hover:underline"
@@ -201,13 +211,43 @@ const NgoDashboard = () => {
       </section>
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Supported Plantations</h2>
-        <p className="text-sm text-gray-600 mb-2">
-          In the next phase, plantations will be tagged to NGOs so you can see and report your impact portfolio here.
-        </p>
-        <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-500 text-sm">
-          No NGO-linked plantations yet. Coordinate with NCCR to onboard your existing projects.
-        </div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Plantations Pending NCCR Verification</h2>
+        {loadingPlantations ? (
+          <div className="border border-gray-200 rounded-lg p-6 text-center text-gray-500">Loading...</div>
+        ) : pendingPlantations.length === 0 ? (
+          <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-500 text-sm">
+            No plantations currently pending NCCR verification.
+          </div>
+        ) : (
+          <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Plantation ID</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Applicant</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Land</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Species</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Tree Count</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Area (ha)</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Date</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {pendingPlantations.map((p) => (
+                  <tr key={p._id}>
+                    <td className="px-4 py-2 font-mono text-xs text-gray-700">{p.plantationId}</td>
+                    <td className="px-4 py-2 text-gray-900">{p.userId?.name || '—'}</td>
+                    <td className="px-4 py-2 text-gray-900">{p.landId?.landReference || '—'}</td>
+                    <td className="px-4 py-2 text-gray-900">{p.speciesName}</td>
+                    <td className="px-4 py-2 text-gray-900">{p.treeCount}</td>
+                    <td className="px-4 py-2 text-gray-900">{p.areaHectares}</td>
+                    <td className="px-4 py-2 text-gray-900">{p.plantationDate ? new Date(p.plantationDate).toLocaleDateString() : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );

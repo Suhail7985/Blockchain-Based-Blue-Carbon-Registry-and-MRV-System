@@ -1,8 +1,7 @@
-/**
- * NGO manual verification queue (demo authority support)
- */
+
 import express from 'express';
 import User from '../models/User.js';
+import Plantation from '../models/Plantation.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { ACCOUNT_STATUS } from '../constants/accountStatus.js';
 import { auditLog } from '../utils/auditLog.js';
@@ -11,6 +10,21 @@ const router = express.Router();
 
 router.use(protect);
 router.use(authorize('ngo'));
+
+// GET /api/ngo/plantations/pending-nccr - plantations pending NCCR verification (after Panchayat approval)
+router.get('/plantations/pending-nccr', async (req, res) => {
+  try {
+    // Optionally, filter by district if needed in future
+    const plantations = await Plantation.find({ status: 'PENDING_NCCR' })
+      .populate('userId', 'name email district state referenceId')
+      .populate('landId', 'areaHectares landReference documentPath')
+      .sort({ submissionTimestamp: -1 })
+      .lean();
+    res.json({ success: true, plantations });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
 
 // GET /api/ngo/kyc/manual-review
 router.get('/kyc/manual-review', async (req, res) => {

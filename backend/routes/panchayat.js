@@ -10,28 +10,32 @@ import { PLANTATION_STATUS } from '../constants/plantationStatus.js';
 import { ACCOUNT_STATUS } from '../constants/accountStatus.js';
 import { auditLog } from '../utils/auditLog.js';
 import { analyzePlantationsRisk } from '../utils/fraud.js';
+import { finalizePlantationApproval } from '../utils/verification.js';
 
 const router = express.Router();
 
 router.use(protect);
 router.use(authorize('panchayat'));
 
-// GET /api/panchayat/plantations - pending plantations in jurisdiction (by district)
+// GET /api/panchayat/plantations - pending plantations in jurisdiction (by district/state)
 router.get('/plantations', async (req, res) => {
   try {
-    const panchayatUser = await User.findById(req.user.id).select('district state').lean();
-    const district = panchayatUser?.district || req.query.district;
-    const status = req.query.status || PLANTATION_STATUS.PENDING_PANCHAYAT;
+    const panchayatUser = await User.findById(req.user.id).select('district state panchayatName').lean();
+    const status = req.query.status;
+    
+    // Strict area filtering based on logged-in Panchayat officer's jurisdiction
+    const query = { status: status || PLANTATION_STATUS.PENDING_PANCHAYAT };
+    
+    if (panchayatUser?.state) query.state = panchayatUser.state.trim();
+    if (panchayatUser?.district) query.district = panchayatUser.district.trim();
+    if (panchayatUser?.panchayatName) query.panchayatName = panchayatUser.panchayatName.trim();
 
-    const plantations = await Plantation.find({ status })
-      .populate('userId', 'name email district state referenceId')
-      .populate('landId', 'areaHectares landReference documentPath')
+    const plantations = await Plantation.find(query)
       .sort({ submissionTimestamp: -1 })
+      .populate('userId', 'name email phone') // Populate owner info
       .lean();
 
-    const inJurisdiction = district
-      ? plantations.filter((p) => (p.userId && p.userId.district || '').toLowerCase() === (district || '').toLowerCase())
-      : plantations;
+    const inJurisdiction = plantations; // DB already filtered it
 
     const risk = analyzePlantationsRisk(inJurisdiction);
     const riskById = new Map(risk.map((r) => [r.plantationId, r]));
@@ -56,34 +60,58 @@ router.patch('/plantations/:id/approve', async (req, res) => {
     }
 
     const previousStatus = plantation.status;
+    const remarks = req.body.remarks || '';
+
+    // Perform Risk Analysis for Jurisdictional Autonomy
+    const riskResults = analyzePlantationsRisk([plantation]);
+    const isLowRisk = riskResults[0]?.riskScore === 'LOW';
+
+    if (isLowRisk) {
+      // 1. Autonomous Approval (Finalize & Mint)
+      await finalizePlantationApproval(plantation._id, req.user.id, 'panchayat', remarks);
+      
+      auditLog('PANCHAYAT_APPROVE_AUTONOMOUS', req.user.id, 'autonomous_approval', {
+        plantationId: plantation.plantationId,
+        area: `${plantation.district}, ${plantation.state}`
+      });
+
+      return res.json({
+        success: true,
+        message: 'Autonomous approval confirmed. Carbon tokens are being minted.',
+        plantation: await Plantation.findById(plantation._id).lean()
+      });
+    }
+
+    // 2. High Risk Escalation (Pending NCCR)
     plantation.status = PLANTATION_STATUS.PENDING_NCCR;
     plantation.panchayatVerification = {
       panchayatId: req.user.id,
       decision: 'approved',
       timestamp: new Date(),
-      remarks: req.body.remarks || '',
+      remarks,
     };
     plantation.auditLog = plantation.auditLog || [];
-    plantation.auditLog.push({ action: 'panchayat_approved', by: req.user.id, timestamp: new Date(), remarks: req.body.remarks });
+    plantation.auditLog.push({ action: 'panchayat_approved_escalated', by: req.user.id, timestamp: new Date(), remarks });
     await plantation.save();
 
-    auditLog('PANCHAYAT_APPROVE', req.user.id, 'plantation_approved', {
+    auditLog('PANCHAYAT_APPROVE_ESCALATED', req.user.id, 'escalated_to_nccr', {
       plantationId: plantation.plantationId,
-      plantationDbId: plantation._id,
+      riskScore: riskResults[0]?.riskScore
     });
+    
     await AuditLog.create({
       plantationId: plantation._id,
-      action: 'panchayat_approved',
+      action: 'panchayat_approved_escalated',
       performedBy: req.user.id,
       role: 'panchayat',
       previousStatus,
       newStatus: plantation.status,
-      details: { remarks: req.body.remarks || '' },
+      details: { remarks, risk: riskResults[0] },
     });
 
     res.json({
       success: true,
-      message: 'Plantation approved. Sent to NCCR for final verification.',
+      message: 'Plantation flagged for investigation. Sent to NCCR for final review.',
       plantation: plantation.toObject(),
     });
   } catch (e) {
@@ -150,13 +178,16 @@ router.get('/kyc/manual-review', async (req, res) => {
       .sort({ updatedAt: -1 })
       .lean();
 
-    const inJurisdiction = district
-      ? users.filter(
-          (u) =>
-            !u.district ||
-            (u.district || '').toLowerCase() === (district || '').toLowerCase()
-        )
-      : users;
+    let inJurisdiction;
+    if (!district) {
+      // Panchayat user has no district set, show all
+      inJurisdiction = users;
+    } else {
+      // Always include users with missing district for admin review
+      inJurisdiction = users.filter(
+        (u) => !u.district || (u.district || '').toLowerCase() === district.toLowerCase()
+      );
+    }
 
     res.json({ success: true, users: inJurisdiction });
   } catch (e) {

@@ -1,0 +1,208 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "VerificationRegistry",
+  "sourceName": "contracts/VerificationRegistry.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_nccr",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "plantationId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "nccr",
+          "type": "address"
+        }
+      ],
+      "name": "NCCRVerified",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "panchayat",
+          "type": "address"
+        }
+      ],
+      "name": "PanchayatAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "panchayat",
+          "type": "address"
+        }
+      ],
+      "name": "PanchayatRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "plantationId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "panchayat",
+          "type": "address"
+        }
+      ],
+      "name": "PanchayatVerified",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_panchayat",
+          "type": "address"
+        }
+      ],
+      "name": "addPanchayat",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "nccr",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "panchayat",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "plantationVerifiedByNCCR",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "plantationVerifiedByPanchayat",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_panchayat",
+          "type": "address"
+        }
+      ],
+      "name": "removePanchayat",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "plantationId",
+          "type": "uint256"
+        }
+      ],
+      "name": "verifyByNCCR",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "plantationId",
+          "type": "uint256"
+        }
+      ],
+      "name": "verifyByPanchayat",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b5060405161051038038061051083398101604081905261002f91610054565b600080546001600160a01b0319166001600160a01b0392909216919091179055610084565b60006020828403121561006657600080fd5b81516001600160a01b038116811461007d57600080fd5b9392505050565b61047d806100936000396000f3fe608060405234801561001057600080fd5b50600436106100885760003560e01c80637560bf621161005b5780637560bf62146100f8578063acb8d4ea1461012b578063ca8c772e1461014e578063ec1116791461016157600080fd5b80630a3c566f1461008d578063154f24f7146100a25780633089f5a4146100d25780633f22d35a146100e5575b600080fd5b6100a061009b3660046103dc565b610184565b005b6000546100b5906001600160a01b031681565b6040516001600160a01b0390911681526020015b60405180910390f35b6100a06100e03660046103dc565b61025b565b6100a06100f33660046103f5565b6102f0565b61011b6101063660046103dc565b60036020526000908152604090205460ff1681565b60405190151581526020016100c9565b61011b6101393660046103dc565b60026020526000908152604090205460ff1681565b6100a061015c3660046103f5565b610369565b61011b61016f3660046103f5565b60016020526000908152604090205460ff1681565b6000546001600160a01b031633146101b75760405162461bcd60e51b81526004016101ae90610425565b60405180910390fd5b60008181526002602052604090205460ff166102155760405162461bcd60e51b815260206004820152601d60248201527f4e6f74207965742076657269666965642062792050616e63686179617400000060448201526064016101ae565b600081815260036020526040808220805460ff1916600117905551339183917f9f3cb8da176dce5726eeab5c23875a1d14e8e1f7c2e0d78ea9082943cef694e69190a350565b3360009081526001602052604090205460ff166102aa5760405162461bcd60e51b815260206004820152600d60248201526c139bdd0814185b98da185e585d609a1b60448201526064016101ae565b600081815260026020526040808220805460ff1916600117905551339183917f279bdae32ec44337dd69368277ef16ffa6eb77fdfb51ccc09331ac7d965510d09190a350565b6000546001600160a01b0316331461031a5760405162461bcd60e51b81526004016101ae90610425565b6001600160a01b0381166000818152600160208190526040808320805460ff1916909217909155517f9e20070be9e73e7365559727321d6438da341f6a44bf81bad85d555db032ba2b9190a250565b6000546001600160a01b031633146103935760405162461bcd60e51b81526004016101ae90610425565b6001600160a01b038116600081815260016020526040808220805460ff19169055517f9e64e3dfa740ec4de5d3fcea290edfb414e90caa1ea33ba45c283be902c3c4649190a250565b6000602082840312156103ee57600080fd5b5035919050565b60006020828403121561040757600080fd5b81356001600160a01b038116811461041e57600080fd5b9392505050565b6020808252600890820152672737ba102721a1a960c11b60408201526060019056fea26469706673582212204d826aad16ba8735df73c7493127d91779d5ef312270cc7ef2ed5e0f99ee00b764736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100885760003560e01c80637560bf621161005b5780637560bf62146100f8578063acb8d4ea1461012b578063ca8c772e1461014e578063ec1116791461016157600080fd5b80630a3c566f1461008d578063154f24f7146100a25780633089f5a4146100d25780633f22d35a146100e5575b600080fd5b6100a061009b3660046103dc565b610184565b005b6000546100b5906001600160a01b031681565b6040516001600160a01b0390911681526020015b60405180910390f35b6100a06100e03660046103dc565b61025b565b6100a06100f33660046103f5565b6102f0565b61011b6101063660046103dc565b60036020526000908152604090205460ff1681565b60405190151581526020016100c9565b61011b6101393660046103dc565b60026020526000908152604090205460ff1681565b6100a061015c3660046103f5565b610369565b61011b61016f3660046103f5565b60016020526000908152604090205460ff1681565b6000546001600160a01b031633146101b75760405162461bcd60e51b81526004016101ae90610425565b60405180910390fd5b60008181526002602052604090205460ff166102155760405162461bcd60e51b815260206004820152601d60248201527f4e6f74207965742076657269666965642062792050616e63686179617400000060448201526064016101ae565b600081815260036020526040808220805460ff1916600117905551339183917f9f3cb8da176dce5726eeab5c23875a1d14e8e1f7c2e0d78ea9082943cef694e69190a350565b3360009081526001602052604090205460ff166102aa5760405162461bcd60e51b815260206004820152600d60248201526c139bdd0814185b98da185e585d609a1b60448201526064016101ae565b600081815260026020526040808220805460ff1916600117905551339183917f279bdae32ec44337dd69368277ef16ffa6eb77fdfb51ccc09331ac7d965510d09190a350565b6000546001600160a01b0316331461031a5760405162461bcd60e51b81526004016101ae90610425565b6001600160a01b0381166000818152600160208190526040808320805460ff1916909217909155517f9e20070be9e73e7365559727321d6438da341f6a44bf81bad85d555db032ba2b9190a250565b6000546001600160a01b031633146103935760405162461bcd60e51b81526004016101ae90610425565b6001600160a01b038116600081815260016020526040808220805460ff19169055517f9e64e3dfa740ec4de5d3fcea290edfb414e90caa1ea33ba45c283be902c3c4649190a250565b6000602082840312156103ee57600080fd5b5035919050565b60006020828403121561040757600080fd5b81356001600160a01b038116811461041e57600080fd5b9392505050565b6020808252600890820152672737ba102721a1a960c11b60408201526060019056fea26469706673582212204d826aad16ba8735df73c7493127d91779d5ef312270cc7ef2ed5e0f99ee00b764736f6c63430008140033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

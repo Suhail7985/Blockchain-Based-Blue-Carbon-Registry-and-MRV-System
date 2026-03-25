@@ -60,6 +60,9 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true,
   },
+  state: { type: String, trim: true },
+  district: { type: String, trim: true },
+  panchayatName: { type: String, trim: true },
   // Personal Details
   dateOfBirth: { type: Date },
   address: { type: String, trim: true },

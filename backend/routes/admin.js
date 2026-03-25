@@ -10,11 +10,13 @@ import { auditLog } from '../utils/auditLog.js';
 import { calculateCarbonWithConfig } from '../utils/carbonCalculation.js';
 import CarbonSettings from '../models/CarbonSettings.js';
 import { analyzePlantationsRisk } from '../utils/fraud.js';
+import { sendPlantationStatusEmail } from '../utils/emailService.js';
 import {
   generatePlantationHash,
   storePlantationHash,
   mintCarbonToken,
 } from '../utils/blockchainService.js';
+import { finalizePlantationApproval } from '../utils/verification.js';
 
 const router = express.Router();
 
@@ -348,6 +350,60 @@ router.get('/panchayats', async (req, res) => {
   }
 });
 
+// Update Panchayat status (ACTIVE/SUSPENDED)
+router.patch('/panchayats/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (![ACCOUNT_STATUS.ACTIVE, ACCOUNT_STATUS.SUSPENDED, ACCOUNT_STATUS.INACTIVE].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, role: 'panchayat' },
+      { accountStatus: status },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ success: false, message: 'Panchayat not found' });
+    
+    auditLog('UPDATE_PANCHAYAT_STATUS', req.user.id, 'update_status', { id: user._id, status });
+    res.json({ success: true, message: `Panchayat ${status}`, user: user.getPublicProfile() });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// ----- Species Management -----
+
+import Species from '../models/Species.js';
+
+router.get('/species', async (req, res) => {
+  try {
+    const species = await Species.find({}).sort({ name: 1 }).lean();
+    res.json({ success: true, species });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.post('/species', async (req, res) => {
+  try {
+    const s = await Species.create(req.body);
+    auditLog('CREATE_SPECIES', req.user.id, 'create', { id: s._id, name: s.name });
+    res.status(201).json({ success: true, species: s });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+router.patch('/species/:id', async (req, res) => {
+  try {
+    const s = await Species.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    auditLog('UPDATE_SPECIES', req.user.id, 'update', { id: s._id, name: s.name });
+    res.json({ success: true, species: s });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // Reject user
 router.patch('/users/:id/reject', async (req, res) => {
   try {
@@ -400,6 +456,7 @@ router.get('/audit-logs', async (req, res) => {
       .sort({ timestamp: -1 })
       .limit(limit)
       .populate('performedBy', 'name email role')
+      .populate('plantationId', 'plantationId')
       .lean();
 
     res.json({ success: true, logs });
@@ -411,142 +468,31 @@ router.get('/audit-logs', async (req, res) => {
 // PATCH /api/admin/plantations/:id/approve - final approve → carbon calc → blockchain → token mint
 router.patch('/plantations/:id/approve', async (req, res) => {
   try {
-    const plantation = await Plantation.findById(req.params.id).populate('userId', 'walletAddress');
+    const plantation = await Plantation.findById(req.params.id).populate('userId', 'walletAddress name email');
     if (!plantation) return res.status(404).json({ success: false, message: 'Plantation not found' });
     if (plantation.status !== PLANTATION_STATUS.PENDING_NCCR) {
       return res.status(400).json({ success: false, message: 'Plantation is not pending NCCR approval.' });
     }
 
+    const userWallet = plantation.userId?.walletAddress?.trim();
+    // In dev or if the user hasn't linked a wallet, we shouldn't block the approval of the *plantation* itself.
+    // We will just skip the token minting step or let it gracefully fail.
+    
     const notes = req.body.notes || '';
 
-    // 1) Carbon calculation (idempotent if called again, using latest settings)
-    const settings = await CarbonSettings.findOne().lean();
-    const carbonCalc = calculateCarbonWithConfig(plantation.treeCount, settings || {});
-    plantation.carbonCalculation = carbonCalc;
-    plantation.status = PLANTATION_STATUS.VERIFIED;
-    plantation.nccrVerification = {
-      adminId: req.user.id,
-      decision: 'approved',
-      timestamp: new Date(),
-      notes,
-    };
-    plantation.auditLog = plantation.auditLog || [];
-    plantation.auditLog.push({ action: 'nccr_approved', by: req.user.id, timestamp: new Date(), notes });
-    await plantation.save();
-    await AuditLog.create({
-      plantationId: plantation._id,
-      action: 'nccr_approved',
-      performedBy: req.user.id,
-      role: 'admin',
-      previousStatus: PLANTATION_STATUS.PENDING_NCCR,
-      newStatus: plantation.status,
-      details: { notes },
-    });
+    // Use unified verification utility for final approval
+    const updated = await finalizePlantationApproval(plantation._id, req.user.id, 'admin', notes);
 
-    // 2) Blockchain hash and submit (skip if already done)
-    if (!plantation.blockchainTxHash) {
-      plantation.status = PLANTATION_STATUS.BLOCKCHAIN_PENDING;
-      plantation.auditLog.push({ action: 'blockchain_pending', timestamp: new Date() });
-      await plantation.save();
-
-      const hashPayload = {
-        plantationId: plantation.plantationId,
-        landId: plantation.landId?._id || plantation.landId,
-        treeCount: plantation.treeCount,
-        areaHectares: plantation.areaHectares,
-        speciesName: plantation.speciesName,
-        timestamp: plantation.submissionTimestamp,
-      };
-      plantation.blockchainHash = generatePlantationHash(hashPayload);
-
-      const bcResult = await storePlantationHash(plantation.blockchainHash, hashPayload);
-      if (!bcResult?.success) {
-        plantation.auditLog.push({
-          action: 'blockchain_failed',
-          timestamp: new Date(),
-        });
-        await plantation.save();
-        return res.status(502).json({
-          success: false,
-          message: 'Blockchain submission failed. Please retry later.',
-        });
-      }
-
-      plantation.blockchainTxHash = bcResult.transactionHash;
-      plantation.blockNumber = bcResult.blockNumber;
-      plantation.blockchainGasUsed = bcResult.gasUsed;
-      plantation.blockchainTimestamp = bcResult.timestamp;
-      plantation.status = PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED;
-      plantation.auditLog.push({
-        action: 'blockchain_confirmed',
-        txHash: bcResult.transactionHash,
-        blockNumber: bcResult.blockNumber,
-        gasUsed: bcResult.gasUsed,
-        timestamp: new Date(),
-      });
-      await plantation.save();
-      await AuditLog.create({
-        plantationId: plantation._id,
-        action: 'blockchain_confirmed',
-        performedBy: req.user.id,
-        role: 'admin',
-        previousStatus: PLANTATION_STATUS.BLOCKCHAIN_PENDING,
-        newStatus: plantation.status,
-        details: {
-          txHash: bcResult.transactionHash,
-          blockNumber: bcResult.blockNumber,
-          gasUsed: bcResult.gasUsed,
-        },
-      });
-    }
-
-    // 3) Token mint (stub, guarded to avoid duplicates)
-    if (!plantation.tokenTxHash) {
-      const walletAddress = plantation.userId?.walletAddress || '0x0000000000000000000000000000000000000000';
-      const mintResult = await mintCarbonToken(walletAddress, carbonCalc.tokens, plantation.plantationId);
-      if (!mintResult?.success) {
-        plantation.auditLog.push({
-          action: 'token_mint_failed',
-          timestamp: new Date(),
-        });
-        await plantation.save();
-        return res.status(502).json({
-          success: false,
-          message: 'Token minting failed. Please retry later.',
-        });
-      }
-      plantation.tokenTxHash = mintResult.transactionHash;
-      plantation.status = PLANTATION_STATUS.TOKEN_MINTED;
-      plantation.auditLog.push({
-        action: 'token_minted',
-        txHash: mintResult.transactionHash,
-        amount: carbonCalc.tokens,
-        timestamp: new Date(),
-      });
-      await plantation.save();
-      await AuditLog.create({
-        plantationId: plantation._id,
-        action: 'token_minted',
-        performedBy: req.user.id,
-        role: 'admin',
-        previousStatus: PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED,
-        newStatus: plantation.status,
-        details: { txHash: mintResult.transactionHash, amount: carbonCalc.tokens },
-      });
-    }
-
-    auditLog('NCCR_PLANTATION_APPROVE', req.user.id, 'plantation_verified_and_minted', {
-      plantationId: plantation.plantationId,
-      co2eq: carbonCalc.co2eq,
-      tokens: carbonCalc.tokens,
-      blockchainTx: plantation.blockchainTxHash,
-      tokenTx: plantation.tokenTxHash,
+    auditLog('NCCR_PLANTATION_APPROVE_FINAL', req.user.id, 'plantation_verified_and_minted', {
+      plantationId: updated.plantationId,
+      co2eq: updated.carbonCalculation.co2eq,
+      tokens: updated.carbonCalculation.tokens,
     });
 
     res.json({
       success: true,
       message: 'Plantation verified. Carbon calculated, blockchain hash recorded, tokens minted.',
-      plantation: plantation.toObject(),
+      plantation: updated.toObject(),
     });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
@@ -588,6 +534,14 @@ router.patch('/plantations/:id/reject', async (req, res) => {
       plantationId: plantation.plantationId,
       notes,
     });
+
+    // Send rejection email notification (non-blocking)
+    const ownerUser = await User.findById(plantation.userId).select('email name').lean();
+    if (ownerUser?.email) {
+      sendPlantationStatusEmail(ownerUser.email, ownerUser.name || 'Land Owner', plantation.plantationId, 'rejected', {
+        reason: notes,
+      }).catch(() => {});
+    }
 
     res.json({
       success: true,

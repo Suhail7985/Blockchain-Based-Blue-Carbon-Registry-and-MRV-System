@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaArrowRight, FaUser, FaLeaf } from 'react-icons/fa';
+import { useAuth } from '../../contexts/AuthContext';
+import { FaArrowRight, FaUser, FaLeaf, FaChartLine } from 'react-icons/fa';
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   return (
     <section
@@ -37,20 +39,32 @@ const Hero = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={() => navigate('/signup')}
-              className="inline-flex items-center justify-center px-8 py-4 bg-white text-carbon-blue-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-4 focus:ring-white focus:ring-offset-2 focus:ring-offset-carbon-blue-700"
-            >
-              Get Started
-              <FaArrowRight className="ml-2 w-5 h-5" aria-hidden="true" />
-            </button>
-            <button
-              onClick={() => navigate('/login')}
-              className="inline-flex items-center justify-center px-8 py-4 bg-carbon-blue-600 text-white font-semibold rounded-lg hover:bg-carbon-blue-500 transition-colors focus:outline-none focus:ring-4 focus:ring-carbon-blue-600 focus:ring-offset-2 focus:ring-offset-carbon-blue-700 border-2 border-white"
-            >
-              <FaUser className="mr-2 w-5 h-5" aria-hidden="true" />
-              Citizen Login
-            </button>
+            {isAuthenticated ? (
+              <button
+                onClick={() => navigate('/portal')}
+                className="inline-flex items-center justify-center px-8 py-4 bg-white text-carbon-blue-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-4 focus:ring-white focus:ring-offset-2 focus:ring-offset-carbon-blue-700"
+              >
+                Go to Dashboard
+                <FaChartLine className="ml-2 w-5 h-5" aria-hidden="true" />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="inline-flex items-center justify-center px-8 py-4 bg-white text-carbon-blue-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-4 focus:ring-white focus:ring-offset-2 focus:ring-offset-carbon-blue-700"
+                >
+                  Get Started
+                  <FaArrowRight className="ml-2 w-5 h-5" aria-hidden="true" />
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="inline-flex items-center justify-center px-8 py-4 bg-carbon-blue-600 text-white font-semibold rounded-lg hover:bg-carbon-blue-500 transition-colors focus:outline-none focus:ring-4 focus:ring-carbon-blue-600 focus:ring-offset-2 focus:ring-offset-carbon-blue-700 border-2 border-white"
+                >
+                  <FaUser className="mr-2 w-5 h-5" aria-hidden="true" />
+                  Citizen Login
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

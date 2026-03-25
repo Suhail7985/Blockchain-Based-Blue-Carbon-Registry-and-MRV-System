@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FaLock, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa';
 
@@ -10,7 +10,11 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
+
+  if (isAuthenticated) {
+    return <Navigate to="/portal" replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -153,9 +157,9 @@ const Login = () => {
             </div>
 
             <div className="text-sm">
-              <a href="#forgot-password" className="font-medium text-gov-blue-600 hover:text-gov-blue-500">
+              <Link to="/forgot-password" className="font-medium text-gov-blue-600 hover:text-gov-blue-500">
                 Forgot password?
-              </a>
+              </Link>
             </div>
           </div>
 

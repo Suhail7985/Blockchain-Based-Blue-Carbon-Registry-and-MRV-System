@@ -11,6 +11,8 @@ import { uploadAadhaar, uploadLand } from '../middleware/upload.js';
 import { ACCOUNT_STATUS } from '../constants/accountStatus.js';
 import { auditLog } from '../utils/auditLog.js';
 import { verifyAadhaarDocument } from '../utils/aadhaarVerification.js';
+import { getTokenBalance, getExplorerAddressUrl } from '../utils/blockchainService.js';
+
 
 const router = express.Router();
 
@@ -28,6 +30,7 @@ router.patch(
     body('ngoName').optional().trim(),
     body('ngoRegistrationNumber').optional().trim(),
     body('ownershipType').optional().isIn(['private', 'community']),
+    body('walletAddress').optional().trim().matches(/^0x[a-fA-F0-9]{40}$/).withMessage('Wallet must be a valid Ethereum address (0x + 40 hex)'),
   ],
   async (req, res) => {
     try {
@@ -38,10 +41,12 @@ router.patch(
           message: 'Use the main profile form with document upload for verification.',
         });
       }
-      const updates = ['name', 'dateOfBirth', 'phone', 'address', 'state', 'district', 'ngoName', 'ngoRegistrationNumber', 'ownershipType'];
+      const updates = ['name', 'dateOfBirth', 'phone', 'address', 'state', 'district', 'ngoName', 'ngoRegistrationNumber', 'ownershipType', 'walletAddress'];
       updates.forEach((f) => {
         if (req.body[f] !== undefined) {
-          user[f] = f === 'dateOfBirth' && req.body[f] ? new Date(req.body[f]) : req.body[f];
+          if (f === 'dateOfBirth') user[f] = req.body[f] ? new Date(req.body[f]) : req.body[f];
+          else if (f === 'walletAddress') user[f] = (req.body[f] || '').trim().toLowerCase() || undefined;
+          else user[f] = req.body[f];
         }
       });
       await user.save();
@@ -340,4 +345,25 @@ router.put(
   }
 );
 
+
+// GET /api/profile/token-balance - on-chain BCC balance for logged-in user
+router.get('/token-balance', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('walletAddress').lean();
+    if (!user?.walletAddress) {
+      return res.json({ success: true, balance: '0', message: 'No wallet address linked' });
+    }
+    const balance = await getTokenBalance(user.walletAddress);
+    res.json({
+      success: true,
+      balance: balance ?? '0',
+      walletAddress: user.walletAddress,
+      explorerUrl: getExplorerAddressUrl(user.walletAddress),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;
+

@@ -3,6 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
 import api from '../../services/api';
+import { FaExternalLinkAlt, FaHistory } from 'react-icons/fa';
+import PlantationHistoryModal from '../../components/plantation/PlantationHistoryModal';
 
 const CarbonLedger = () => {
   const { user } = useAuth();
@@ -11,6 +13,7 @@ const CarbonLedger = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
+  const [historyItem, setHistoryItem] = useState(null);
 
   useEffect(() => {
     if (!isActive) return;
@@ -127,8 +130,18 @@ const CarbonLedger = () => {
                     <td className="px-4 py-2 text-right text-bc-green-700 font-medium">
                       {e.carbonCalculation?.tokens ?? '—'}
                     </td>
-                    <td className="px-4 py-2 text-xs font-mono text-gray-600 max-w-[130px] truncate" title={e.tokenTxHash || e.blockchainTxHash}>
-                      {e.tokenTxHash || e.blockchainTxHash || '—'}
+                    <td className="px-4 py-2 text-xs">
+                      {e.tokenTxExplorerUrl ? (
+                        <a href={e.tokenTxExplorerUrl} target="_blank" rel="noopener noreferrer" className="text-bc-green-600 hover:underline inline-flex items-center gap-1">
+                          View on Explorer <FaExternalLinkAlt className="w-3 h-3" />
+                        </a>
+                      ) : e.blockchainTxExplorerUrl ? (
+                        <a href={e.blockchainTxExplorerUrl} target="_blank" rel="noopener noreferrer" className="text-bc-green-600 hover:underline inline-flex items-center gap-1">
+                          View on Explorer <FaExternalLinkAlt className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="font-mono text-gray-500">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-2">
                       <span className="inline-block px-2 py-1 rounded text-xs bg-bc-green-50 text-bc-green-700">
@@ -136,13 +149,24 @@ const CarbonLedger = () => {
                       </span>
                     </td>
                     <td className="px-4 py-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelected(e)}
-                        className="text-sm text-bc-green-600 hover:underline"
-                      >
-                        View breakdown
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelected(e)}
+                          className="text-sm text-bc-green-600 hover:underline"
+                        >
+                          Breakdown
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHistoryItem(e)}
+                          className="text-sm text-gray-500 hover:text-bc-green-600 flex items-center gap-1"
+                          title="View Progress History"
+                        >
+                          <FaHistory className="w-3 h-3" />
+                          History
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -153,8 +177,8 @@ const CarbonLedger = () => {
       )}
 
       {selected && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg max-w-lg w-full p-6">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-lg w-full p-6 animate-in fade-in zoom-in duration-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Carbon Calculation Breakdown</h2>
             <p className="text-sm text-gray-700 mb-2">
               <span className="font-semibold">Plantation ID:</span>{' '}
@@ -195,6 +219,12 @@ const CarbonLedger = () => {
             </div>
           </div>
         </div>
+      )}
+      {historyItem && (
+        <PlantationHistoryModal 
+          plantation={historyItem} 
+          onClose={() => setHistoryItem(null)} 
+        />
       )}
     </div>
   );

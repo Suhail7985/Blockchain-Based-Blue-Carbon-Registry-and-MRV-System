@@ -1,8 +1,9 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
+import crypto from 'crypto';
 import User from '../models/User.js';
 import TempUser from '../models/TempUser.js';
-import { sendOTPEmail } from '../utils/emailService.js';
+import { sendOTPEmail, sendPasswordResetEmail } from '../utils/emailService.js';
 import { generateOTP, isOTPExpired } from '../utils/otpGenerator.js';
 import { hashOTP, compareOTP } from '../utils/hashOTP.js';
 import { otpRateLimiter, verifyRateLimiter } from '../middleware/rateLimiter.js';
@@ -428,6 +429,7 @@ router.get('/me', protect, async (req, res) => {
         landDocumentPath: user.landDocumentPath,
         landAreaHectares: user.landAreaHectares,
         rejectionReason: user.rejectionReason,
+        walletAddress: user.walletAddress,
         createdAt: user.createdAt,
       },
     });
@@ -453,4 +455,108 @@ router.post('/logout', (req, res) => {
   });
 });
 
+// Forgot Password — send reset link
+router.post(
+  '/forgot-password',
+  otpRateLimiter,
+  [body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      }
+
+      const { email } = req.body;
+      const user = await User.findOne({ email });
+
+      // Always return success to prevent email enumeration
+      if (!user) {
+        return res.status(200).json({
+          success: true,
+          message: 'If an account with that email exists, a reset link has been sent.',
+        });
+      }
+
+      // Generate secure reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+      user.passwordResetToken = hashedToken;
+      user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      await user.save({ validateBeforeSave: false });
+
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+
+      try {
+        await sendPasswordResetEmail(email, resetUrl);
+      } catch (emailError) {
+        // Roll back token if email fails
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save({ validateBeforeSave: false });
+        return res.status(500).json({ success: false, message: 'Failed to send reset email. Please try again.' });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'If an account with that email exists, a reset link has been sent.',
+      });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
+    }
+  }
+);
+
+// Reset Password — validate token and update password
+router.post(
+  '/reset-password/:token',
+  [
+    body('password')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 characters')
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/)
+      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      }
+
+      // Hash the incoming token to compare with stored hash
+      const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+      const user = await User.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: new Date() },
+      });
+
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired reset token. Please request a new password reset.',
+        });
+      }
+
+      // Update password (pre-save hook will hash it)
+      user.password = req.body.password;
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Password has been reset successfully. You can now log in with your new password.',
+      });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
+    }
+  }
+);
+
 export default router;
+

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import config from '../config/config.js';
 
 /**
  * Protect routes - verify JWT token
@@ -23,7 +24,7 @@ export const protect = async (req, res, next) => {
 
   try {
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
 
     // Get user from token
     req.user = await User.findById(decoded.id).select('-password');
@@ -71,7 +72,7 @@ export const authorize = (...roles) => {
  * Generate JWT Token
  */
 export const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '1h',
+  return jwt.sign({ id }, config.jwt.secret, {
+    expiresIn: config.jwt.expire,
   });
 };

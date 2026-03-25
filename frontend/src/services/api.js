@@ -1,17 +1,19 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+const API_BASE_URL = (process.env.NODE_ENV === 'production' || process.env.REACT_APP_VERCEL) 
+  ? '/api' 
+  : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies
+  withCredentials: true,
   timeout: 10000,
 });
 
-// Add request interceptor to include token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -23,29 +25,28 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add response interceptor for error handling
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear auth data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // Redirect to login if not already there
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+      const publicPaths = ['/', '/login', '/signup', '/verify-otp', '/complete-registration', '/forgot-password', '/transparency'];
+      const currentPath = window.location.pathname;
+      if (!publicPaths.includes(currentPath) && !currentPath.startsWith('/reset-password/')) {
         window.location.href = '/login';
       }
     }
     return Promise.reject(error);
   }
 );
+
+// NGO - Plantations pending NCCR verification
+export const getNgoPendingNccrPlantations = () =>
+  api.get('/ngo/plantations/pending-nccr').then((r) => r.data);
 
 // Auth endpoints
 export const sendOTP = async (email) => {
@@ -93,6 +94,7 @@ export const uploadLandDocument = (formData) => api.put('/profile/land-document'
 
 // Plantation
 export const getVerifiedLands = () => api.get('/plantation/lands').then((r) => r.data);
+export const registerLand = (formData) => api.post('/plantation/lands', formData).then((r) => r.data);
 export const getMyPlantations = () => api.get('/plantation').then((r) => r.data);
 export const submitPlantation = (formData) => api.post('/plantation', formData).then((r) => r.data);
 
@@ -140,5 +142,25 @@ export const getPanchayats = () => api.get('/admin/panchayats').then((r) => r.da
 export const createPanchayat = (payload) => api.post('/admin/panchayats', payload).then((r) => r.data);
 export const makeUserPanchayat = (userId, payload) =>
   api.patch(`/admin/users/${userId}/make-panchayat`, payload).then((r) => r.data);
+export const updatePanchayatStatus = (id, status) =>
+  api.patch(`/admin/panchayats/${id}/status`, { status }).then((r) => r.data);
+
+// Admin - Species Management
+export const adminGetSpecies = () => api.get('/admin/species').then((r) => r.data);
+export const adminUpdateSpecies = (id, data) => api.patch(`/admin/species/${id}`, data).then((r) => r.data);
+export const adminCreateSpecies = (data) => api.post('/admin/species', data).then((r) => r.data);
+
+export const resubmitPlantation = async (id, formData) => {
+  const response = await api.patch(`/plantation/${id}/resubmit`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+// Public routes
+export const getSpecies = async () => {
+  const response = await api.get('/public/species');
+  return response.data;
+};
 
 export default api;

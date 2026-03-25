@@ -61,6 +61,7 @@ const Header = () => {
     { label: 'About', href: '#about' },
     { label: 'Features', href: '#features' },
     { label: 'How It Works', href: '#how-it-works' },
+    { label: 'Public Registry', href: '/transparency', isRoute: true },
     { label: 'Contact', href: '#contact' },
   ];
 
@@ -117,13 +118,23 @@ const Header = () => {
             <ul className="hidden lg:flex items-center gap-1" role="menubar">
               {navItems.map((item) => (
                 <li key={item.label} role="none">
-                  <a
-                    href={item.href}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-gov-blue-600 dark:hover:text-carbon-blue-400 hover:bg-gov-blue-50 dark:hover:bg-gray-700 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gov-blue-600"
-                    role="menuitem"
-                  >
-                    {item.label}
-                  </a>
+                  {item.isRoute ? (
+                    <button
+                      onClick={() => navigate(item.href)}
+                      className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-gov-blue-600 dark:hover:text-carbon-blue-400 hover:bg-gov-blue-50 dark:hover:bg-gray-700 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gov-blue-600"
+                      role="menuitem"
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <a
+                      href={item.href}
+                      className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-gov-blue-600 dark:hover:text-carbon-blue-400 hover:bg-gov-blue-50 dark:hover:bg-gray-700 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gov-blue-600"
+                      role="menuitem"
+                    >
+                      {item.label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -212,14 +223,27 @@ const Header = () => {
             <ul className="py-4 space-y-1" role="menu">
               {navItems.map((item) => (
                 <li key={item.label} role="none">
-                  <a
-                    href={item.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-gov-blue-600 dark:hover:text-carbon-blue-400 hover:bg-gov-blue-50 dark:hover:bg-gray-700 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gov-blue-600"
-                    role="menuitem"
-                  >
-                    {item.label}
-                  </a>
+                  {item.isRoute ? (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        navigate(item.href);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-gov-blue-600 dark:hover:text-carbon-blue-400 hover:bg-gov-blue-50 dark:hover:bg-gray-700 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gov-blue-600"
+                      role="menuitem"
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <a
+                      href={item.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:text-gov-blue-600 dark:hover:text-carbon-blue-400 hover:bg-gov-blue-50 dark:hover:bg-gray-700 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gov-blue-600"
+                      role="menuitem"
+                    >
+                      {item.label}
+                    </a>
+                  )}
                 </li>
               ))}
               <li className="pt-4 border-t border-gray-200 dark:border-gray-700" role="none">

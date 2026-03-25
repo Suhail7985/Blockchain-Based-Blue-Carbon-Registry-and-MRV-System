@@ -2,7 +2,9 @@ import express from 'express';
 import { protect } from '../middleware/auth.js';
 import { requireActive } from '../middleware/statusMiddleware.js';
 import Plantation from '../models/Plantation.js';
+import User from '../models/User.js';
 import { PLANTATION_STATUS } from '../constants/plantationStatus.js';
+import { getTokenBalance, getExplorerAddressUrl } from '../utils/blockchainService.js';
 
 const router = express.Router();
 
@@ -31,16 +33,30 @@ router.get('/', async (req, res) => {
           co2eq: p.carbonCalculation.co2eq,
           tokens: p.carbonCalculation.tokens,
           status: p.status,
+          blockchainTxHash: p.blockchainTxHash,
+          tokenTxHash: p.tokenTxHash,
         });
       }
     });
     history.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const user = await User.findById(req.user.id).select('walletAddress').lean();
+    const walletAddress = user?.walletAddress;
+    let walletBalance = null;
+    let explorerAddressUrl = null;
+    if (walletAddress) {
+      walletBalance = await getTokenBalance(walletAddress);
+      explorerAddressUrl = getExplorerAddressUrl(walletAddress);
+    }
 
     res.json({
       success: true,
       totalCO2: Math.round(totalCO2 * 1000) / 1000,
       totalTokens: Math.round(totalTokens * 1000) / 1000,
       verifiedPlantations: verified.length,
+      walletAddress: walletAddress || null,
+      walletBalance: walletBalance != null ? String(walletBalance) : null,
+      explorerAddressUrl,
       history,
     });
   } catch (e) {

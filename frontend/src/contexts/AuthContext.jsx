@@ -22,43 +22,46 @@ export const AuthProvider = ({ children }) => {
       const storedToken = localStorage.getItem('token');
       if (storedToken) {
         setToken(storedToken);
-        try {
-          const response = await api.get('/auth/me');
-          if (response.data.success) {
-            setUser(response.data.user);
-          } else {
-            localStorage.removeItem('token');
-            setToken(null);
+      }
+      // Always try /auth/me — it works via cookie (httpOnly) or Bearer token header
+      try {
+        const response = await api.get('/auth/me');
+        if (response.data.success) {
+          setUser(response.data.user);
+          // Ensure token is set if returned
+          if (response.data.token) {
+            setToken(response.data.token);
+            localStorage.setItem('token', response.data.token);
           }
-        } catch (error) {
+        } else {
           localStorage.removeItem('token');
           setToken(null);
+          setUser(null);
         }
+      } catch {
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
       }
       setLoading(false);
     };
-
     checkAuth();
   }, []);
 
   const login = async (email, password, rememberMe = false) => {
     try {
-      const response = await api.post('/auth/login', {
-        email,
-        password,
-        rememberMe,
-      });
-
+      const response = await api.post('/auth/login', { email, password, rememberMe });
       if (response.data.success) {
         const { user: userData, token: authToken } = response.data;
         setUser(userData);
         setToken(authToken);
-        localStorage.setItem('token', authToken);
+        if (authToken) {
+          localStorage.setItem('token', authToken);
+        }
         localStorage.setItem('user', JSON.stringify(userData));
         return { success: true };
-      } else {
-        return { success: false, error: response.data.message || 'Login failed' };
       }
+      return { success: false, error: response.data.message || 'Login failed' };
     } catch (error) {
       return {
         success: false,
@@ -69,17 +72,11 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, name, password) => {
     try {
-      const response = await api.post('/auth/register', {
-        email,
-        name,
-        password,
-      });
-
+      const response = await api.post('/auth/register', { email, name, password });
       if (response.data.success) {
         return { success: true, message: response.data.message };
-      } else {
-        return { success: false, error: response.data.message || 'Registration failed' };
       }
+      return { success: false, error: response.data.message || 'Registration failed' };
     } catch (error) {
       return {
         success: false,
@@ -114,6 +111,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Role helpers — aligned with DB role values (citizen, panchayat, admin, verifier, ngo, community)
+  const isNCCR = () => user?.role === 'admin' || user?.role === 'verifier' || user?.role === 'nccr';
+  const isPanchayat = () => user?.role === 'panchayat';
+  const isUser = () => user?.role === 'citizen' || user?.role === 'ngo' || user?.role === 'community';
+
   const value = {
     user,
     token,
@@ -122,7 +124,10 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     refreshUser,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user,   // Fixed: rely on user, not token (token may not exist with cookie auth)
+    isNCCR,
+    isPanchayat,
+    isUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

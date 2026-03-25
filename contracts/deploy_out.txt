@@ -1,0 +1,11 @@
+≡ƒÜÇ Deploying Blue Carbon Registry contracts to amoy ...
+
+Deployer address: 0x0ADeA44b8725f0cb98AdfcbBbc327b11dF0A5257
+
+≡ƒô¥ Deploying CarbonCreditToken (BCC)...
+ProviderError: insufficient funds for gas * price + value: balance 0, tx cost 18965949950327177, overshot 18965949950327177
+    at HttpProvider.request (E:\blue-carbon-registry\contracts\node_modules\hardhat\src\internal\core\providers\http.ts:116:21)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at HardhatEthersSigner.sendTransaction (E:\blue-carbon-registry\contracts\node_modules\@nomicfoundation\hardhat-ethers\src\signers.ts:185:18)
+    at ContractFactory.deploy (E:\blue-carbon-registry\contracts\node_modules\ethers\src.ts\contract\factory.ts:111:24)
+    at main (E:\blue-carbon-registry\contracts\scripts\deploy.cjs:12:17)

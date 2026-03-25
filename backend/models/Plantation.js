@@ -37,6 +37,27 @@ const carbonCalculationSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const healthCheckSchema = new mongoose.Schema(
+  {
+    checkType: {
+      type: String,
+      enum: ['initial_verification', 'survival_check', 'carbon_recalculation'],
+      required: true,
+    },
+    scheduledYear: { type: Number, required: true },
+    performedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    performedByRole: { type: String, enum: ['panchayat', 'admin', 'ngo'] },
+    performedAt: { type: Date, default: Date.now },
+    result: { type: String, enum: ['pass', 'fail', 'recalculated'], required: true },
+    survivalRate: { type: Number, min: 0, max: 100 },
+    survivingTrees: { type: Number },
+    updatedCO2: { type: Number },
+    notes: { type: String },
+    evidenceImages: [{ type: String }],
+  },
+  { _id: true }
+);
+
 const plantationSchema = new mongoose.Schema(
   {
     plantationId: { type: String, unique: true, required: true },
@@ -47,6 +68,11 @@ const plantationSchema = new mongoose.Schema(
     areaHectares: { type: Number, required: true, min: 0 },
     plantationDate: { type: Date, required: true },
     gpsCoordinates: { type: gpsSchema },
+    latitude: { type: Number },
+    longitude: { type: Number },
+    state: { type: String, trim: true },
+    district: { type: String, trim: true },
+    panchayatName: { type: String, trim: true },
     imagePaths: [{ type: String }],
     declarationAccepted: { type: Boolean, default: false },
     status: {
@@ -62,6 +88,15 @@ const plantationSchema = new mongoose.Schema(
     blockchainTxHash: { type: String },
     tokenTxHash: { type: String },
     auditLog: [{ type: mongoose.Schema.Types.Mixed }],
+    healthChecks: [{ type: healthCheckSchema }],
+    rejectionHistory: [
+      {
+        previousStatus: String,
+        reason: String,
+        rejectedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

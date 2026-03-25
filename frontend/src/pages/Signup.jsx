@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { sendOTP } from '../services/api';
 import { FaEnvelope, FaArrowRight } from 'react-icons/fa';
 
@@ -8,6 +9,11 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  if (isAuthenticated) {
+    return <Navigate to="/portal" replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

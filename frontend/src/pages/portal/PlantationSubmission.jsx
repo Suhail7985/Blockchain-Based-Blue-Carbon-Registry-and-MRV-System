@@ -2,16 +2,65 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
-import { getVerifiedLands, submitPlantation } from '../../services/api';
-import { FaSeedling, FaLock, FaMapMarkerAlt, FaImages } from 'react-icons/fa';
+import { getVerifiedLands, submitPlantation, getSpecies } from '../../services/api';
+import { FaSeedling, FaLock, FaMapMarkerAlt, FaImages, FaLandmark } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix for default Leaflet marker icons in React
+const customIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+function MapSelector({ lat, lng, onLocationSelect }) {
+  const position = lat && lng ? [parseFloat(lat), parseFloat(lng)] : null;
+  const defaultCenter = [20.5937, 78.9629]; // Default: India
+
+  function MapEvents() {
+    const map = useMapEvents({
+      click(e) {
+        onLocationSelect(e.latlng.lat.toFixed(6), e.latlng.lng.toFixed(6));
+      },
+    });
+
+    useEffect(() => {
+      if (position) {
+        map.flyTo(position, map.getZoom() > 10 ? map.getZoom() : 13);
+      }
+    }, [position?.[0], position?.[1], map]);
+
+    return position ? <Marker position={position} icon={customIcon} /> : null;
+  }
+
+  return (
+    <div className="h-[300px] w-full rounded-lg overflow-hidden border border-gray-300 relative mt-3 z-0">
+      <MapContainer center={position || defaultCenter} zoom={position ? 13 : 4} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <MapEvents />
+      </MapContainer>
+    </div>
+  );
+}
 
 const PlantationSubmission = () => {
   const { user } = useAuth();
   const isActive = user?.accountStatus === ACCOUNT_STATUS.ACTIVE;
 
   const [lands, setLands] = useState([]);
+  const [speciesList, setSpeciesList] = useState([]);
   const [loadingLands, setLoadingLands] = useState(false);
+  const [loadingSpecies, setLoadingSpecies] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     landId: '',
@@ -19,6 +68,9 @@ const PlantationSubmission = () => {
     treeCount: '',
     areaHectares: '',
     plantationDate: '',
+    state: user?.state || '',
+    district: user?.district || '',
+    panchayatName: user?.panchayatName || '',
     lat: '',
     lng: '',
     declarationAccepted: false,
@@ -30,12 +82,17 @@ const PlantationSubmission = () => {
   useEffect(() => {
     if (isActive) {
       setLoadingLands(true);
-      getVerifiedLands()
-        .then((res) => {
-          if (res.success && res.lands) setLands(res.lands);
+      setLoadingSpecies(true);
+      Promise.all([getVerifiedLands(), getSpecies()])
+        .then(([landRes, speciesRes]) => {
+          if (landRes.success) setLands(landRes.lands || []);
+          if (speciesRes.success) setSpeciesList(speciesRes.species || []);
         })
-        .catch(() => toast.error('Failed to load verified lands'))
-        .finally(() => setLoadingLands(false));
+        .catch(() => toast.error('Failed to load form data'))
+        .finally(() => {
+          setLoadingLands(false);
+          setLoadingSpecies(false);
+        });
     }
   }, [isActive]);
 
@@ -87,6 +144,9 @@ const PlantationSubmission = () => {
     if (!form.treeCount || form.treeCount < 1) err.treeCount = 'Tree count must be at least 1';
     if (form.areaHectares === '' || parseFloat(form.areaHectares) < 0) err.areaHectares = 'Valid area (hectares) is required';
     if (!form.plantationDate) err.plantationDate = 'Plantation date is required';
+    if (!form.state?.trim()) err.state = 'State is required';
+    if (!form.district?.trim()) err.district = 'District is required';
+    if (!form.panchayatName?.trim()) err.panchayatName = 'Panchayat Name is required';
     if (!form.lat || !form.lng) err.gps = 'GPS coordinates (latitude and longitude) are required';
     if (!form.declarationAccepted) err.declarationAccepted = 'You must accept the declaration';
     const selectedLand = lands.find((l) => l._id === form.landId);
@@ -109,6 +169,9 @@ const PlantationSubmission = () => {
     formData.append('treeCount', form.treeCount);
     formData.append('areaHectares', form.areaHectares);
     formData.append('plantationDate', form.plantationDate);
+    formData.append('state', form.state);
+    formData.append('district', form.district);
+    formData.append('panchayatName', form.panchayatName);
     formData.append('declarationAccepted', 'true');
     if (form.lat) formData.append('lat', form.lat);
     if (form.lng) formData.append('lng', form.lng);
@@ -124,6 +187,9 @@ const PlantationSubmission = () => {
           treeCount: '',
           areaHectares: '',
           plantationDate: '',
+          state: '',
+          district: '',
+          panchayatName: '',
           lat: '',
           lng: '',
           declarationAccepted: false,
@@ -162,6 +228,19 @@ const PlantationSubmission = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Jurisdictional Routing Information */}
+        <div className="bg-bc-green-50 border border-bc-green-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="p-2 bg-bc-green-600 rounded-lg text-white">
+            <FaLandmark className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-bc-green-900">Jurisdictional Routing</h3>
+            <p className="text-xs text-bc-green-800 mt-0.5">
+              Based on your profile, this plantation will be routed to the <strong>{form.panchayatName || 'Local Panchayat'}</strong> in <strong>{form.district}, {form.state}</strong> for autonomous verification.
+            </p>
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Verified Land *</label>
@@ -186,15 +265,25 @@ const PlantationSubmission = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Species Name *</label>
-            <input
-              type="text"
+            <select
               name="speciesName"
               value={form.speciesName}
               onChange={handleChange}
-              placeholder="e.g. Rhizophora mucronata"
-              disabled={!isActive}
+              disabled={!isActive || loadingSpecies}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500 disabled:bg-gray-100"
-            />
+            >
+              <option value="">{loadingSpecies ? 'Loading species...' : '--- Select Species ---'}</option>
+              {speciesList.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {s.name} ({s.category})
+                </option>
+              ))}
+            </select>
+            {form.speciesName && speciesList.find(s => s.name === form.speciesName) && (
+              <p className="mt-1 text-[11px] text-gray-500">
+                Sequestration Basis: ~{speciesList.find(s => s.name === form.speciesName).avgBiomassPerTreeKg}kg biomass/tree
+              </p>
+            )}
             {errors.speciesName && <p className="text-sm text-red-600 mt-1">{errors.speciesName}</p>}
           </div>
 
@@ -242,6 +331,52 @@ const PlantationSubmission = () => {
             {errors.plantationDate && <p className="text-sm text-red-600 mt-1">{errors.plantationDate}</p>}
           </div>
 
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+              <input
+                type="text"
+                name="state"
+                value={form.state}
+                onChange={handleChange}
+                placeholder="e.g. West Bengal"
+                disabled={!isActive}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500 disabled:bg-gray-100"
+              />
+              {errors.state && <p className="text-sm text-red-600 mt-1">{errors.state}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">District *</label>
+              <input
+                type="text"
+                name="district"
+                value={form.district}
+                onChange={handleChange}
+                placeholder="e.g. South 24 Parganas"
+                disabled={!isActive}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500 disabled:bg-gray-100"
+              />
+              {errors.district && <p className="text-sm text-red-600 mt-1">{errors.district}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Local Panchayat Name *</label>
+            <input
+              type="text"
+              name="panchayatName"
+              value={form.panchayatName}
+              onChange={handleChange}
+              placeholder="e.g. Sundarbans Gram Panchayat"
+              disabled={!isActive}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500 disabled:bg-gray-100"
+            />
+            <p className="text-[11px] text-gray-500 mt-1">
+              Select the local government body that will verify this plantation.
+            </p>
+            {errors.panchayatName && <p className="text-sm text-red-600 mt-1">{errors.panchayatName}</p>}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">GPS Coordinates *</label>
             <div className="flex gap-2 flex-wrap">
@@ -274,6 +409,13 @@ const PlantationSubmission = () => {
               </button>
             </div>
             {errors.gps && <p className="text-sm text-red-600 mt-1">{errors.gps}</p>}
+            {isActive && (
+              <MapSelector
+                lat={form.lat}
+                lng={form.lng}
+                onLocationSelect={(lat, lng) => setForm(prev => ({ ...prev, lat, lng }))}
+              />
+            )}
           </div>
 
           <div>

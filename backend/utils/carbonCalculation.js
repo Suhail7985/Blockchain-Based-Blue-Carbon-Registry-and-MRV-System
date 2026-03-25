@@ -1,45 +1,65 @@
-/**
- * Carbon calculation for verified plantations
- * Biomass = Tree Count × Avg Biomass per Tree
- * Carbon = Biomass × 0.48
- * CO₂eq = Carbon × 3.67
- * Tokens = CO₂eq (1 Token = 1 Ton CO₂eq)
- */
-export const AVG_BIOMASS_PER_TREE_KG = 50; // kg per tree (configurable per species if needed)
-const CARBON_FRACTION = 0.48;
-const CO2EQ_FACTOR = 3.67;
+import Species from '../models/Species.js';
+
+const DEFAULT_FACTORS = {
+  avgBiomassPerTreeKg: 50,
+  carbonFraction: 0.48,
+  co2eqFactor: 3.67,
+};
+
 const KG_TO_TON = 0.001;
 
-export function calculateCarbon(treeCount, avgBiomassPerTreeKg = AVG_BIOMASS_PER_TREE_KG) {
-  const biomassKg = treeCount * avgBiomassPerTreeKg;
+/**
+ * Calculate carbon based on tree count and species-specific factors.
+ * If speciesName is provided, it tries to look up factors from DB.
+ */
+export async function calculateCarbon(treeCount, speciesName = null) {
+  let factors = { ...DEFAULT_FACTORS };
+
+  if (speciesName) {
+    const species = await Species.findOne({ name: speciesName }).lean();
+    if (species) {
+      factors = {
+        avgBiomassPerTreeKg: species.avgBiomassPerTreeKg,
+        carbonFraction: species.carbonFraction,
+        co2eqFactor: species.co2eqFactor,
+      };
+    }
+  }
+
+  const biomassKg = treeCount * factors.avgBiomassPerTreeKg;
   const biomassTon = biomassKg * KG_TO_TON;
-  const carbonTon = biomassTon * CARBON_FRACTION;
-  const co2eqTon = carbonTon * CO2EQ_FACTOR;
-  const tokens = co2eqTon; // 1 token = 1 ton CO2eq
+  const carbonTon = biomassTon * factors.carbonFraction;
+  const co2eqTon = carbonTon * factors.co2eqFactor;
+  const tokens = co2eqTon;
+
   return {
     biomass: Math.round(biomassTon * 1000) / 1000,
     carbon: Math.round(carbonTon * 1000) / 1000,
     co2eq: Math.round(co2eqTon * 1000) / 1000,
     tokens: Math.round(tokens * 1000) / 1000,
-    avgBiomassPerTree: avgBiomassPerTreeKg,
+    avgBiomassPerTree: factors.avgBiomassPerTreeKg,
+    scientificFactors: factors,
   };
 }
 
-// Configurable variant used with CarbonSettings
+// Configurable variant for admin overrides
 export function calculateCarbonWithConfig(treeCount, config) {
-  const avgBiomass = config?.avgBiomassPerTreeKg || AVG_BIOMASS_PER_TREE_KG;
-  const carbonFrac = config?.carbonFraction ?? CARBON_FRACTION;
-  const co2Factor = config?.co2eqFactor ?? CO2EQ_FACTOR;
-  const biomassKg = treeCount * avgBiomass;
+  const factors = {
+    avgBiomassPerTreeKg: config?.avgBiomassPerTreeKg || DEFAULT_FACTORS.avgBiomassPerTreeKg,
+    carbonFraction: config?.carbonFraction ?? DEFAULT_FACTORS.carbonFraction,
+    co2eqFactor: config?.co2eqFactor ?? DEFAULT_FACTORS.co2eqFactor,
+  };
+
+  const biomassKg = treeCount * factors.avgBiomassPerTreeKg;
   const biomassTon = biomassKg * KG_TO_TON;
-  const carbonTon = biomassTon * carbonFrac;
-  const co2eqTon = carbonTon * co2Factor;
-  const tokens = co2eqTon;
+  const carbonTon = biomassTon * factors.carbonFraction;
+  const co2eqTon = carbonTon * factors.co2eqFactor;
+
   return {
     biomass: Math.round(biomassTon * 1000) / 1000,
     carbon: Math.round(carbonTon * 1000) / 1000,
     co2eq: Math.round(co2eqTon * 1000) / 1000,
-    tokens: Math.round(tokens * 1000) / 1000,
-    avgBiomassPerTree: avgBiomass,
+    tokens: Math.round(co2eqTon * 1000) / 1000,
+    avgBiomassPerTree: factors.avgBiomassPerTreeKg,
   };
 }
