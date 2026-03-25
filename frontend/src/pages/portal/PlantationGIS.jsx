@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { FaMapMarkerAlt, FaInfoCircle, FaLeaf, FaTrees, FaCheckCircle, FaExclamationTriangle, FaTimesCircle } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaInfoCircle } from 'react-icons/fa';
 import { PLANTATION_STATUS } from '../../constants/plantationStatus';
 
 // Custom Marker Icons based on Status
@@ -28,7 +28,6 @@ const getMarkerIcon = (status) => {
 const PlantationGIS = () => {
   const [mapData, setMapData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [stats, setStats] = useState({ total: 0, verified: 0, co2: 0 });
 
   useEffect(() => {
@@ -44,7 +43,7 @@ const PlantationGIS = () => {
           });
         }
       } catch (err) {
-        setError('Failed to load GIS data. Please ensure the backend is running.');
+        console.error('Failed to load GIS data:', err);
       } finally {
         setLoading(false);
       }

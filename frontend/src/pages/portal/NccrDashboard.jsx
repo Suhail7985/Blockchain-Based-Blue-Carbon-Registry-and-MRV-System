@@ -19,7 +19,7 @@ import {
   adminCreateSpecies
 } from '../../services/api';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell, PieChart, Pie
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar
 } from 'recharts';
 import {
   FaCheckCircle,
@@ -36,7 +36,6 @@ import { buildLifecycleTimestamps } from '../../utils/plantationLifecycle';
 import toast from 'react-hot-toast';
 
 const PENDING_NCCR = 'PENDING_NCCR';
-const TOKEN_MINTED = 'TOKEN_MINTED';
 
 const NccrDashboard = () => {
   const { user } = useAuth();

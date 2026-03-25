@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 import ActionModal from '../../components/portal/ActionModal';
 import EvidenceGallery from '../../components/portal/EvidenceGallery';
 import ReviewModal from '../../components/portal/ReviewModal';
-import { FaLeaf, FaMapMarkerAlt, FaImages, FaShieldAlt, FaChartBar, FaTree, FaCheckCircle, FaTimesCircle, FaTimes, FaExclamationTriangle, FaLandmark } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaImages, FaShieldAlt, FaChartBar, FaTree, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaLandmark } from 'react-icons/fa';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -36,14 +36,9 @@ const PanchayatDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [manualKyc, setManualKyc] = useState([]);
   const [filterTab, setFilterTab] = useState('PENDING_PANCHAYAT');
-  const [rejectingId, setRejectingId] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
   const [actionId, setActionId] = useState(null);
   
   // KYC specific state
-  const [kycActionId, setKycActionId] = useState(null);
-  const [kycNotes, setKycNotes] = useState('');
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showKycModal, setShowKycModal] = useState(false);

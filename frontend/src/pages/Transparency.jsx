@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { FaCheckCircle, FaLeaf, FaCoins, FaExternalLinkAlt, FaSearch, FaShieldAlt, FaCubes } from 'react-icons/fa';
+import { FaCheckCircle, FaLeaf, FaCoins, FaSearch, FaShieldAlt, FaCubes } from 'react-icons/fa';
 
 const EXPLORER_BASE = 'https://amoy.polygonscan.com/tx/';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';

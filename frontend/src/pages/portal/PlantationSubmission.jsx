@@ -31,11 +31,14 @@ function MapSelector({ lat, lng, onLocationSelect }) {
       },
     });
 
+    const posLat = position?.[0];
+    const posLng = position?.[1];
+
     useEffect(() => {
-      if (position) {
-        map.flyTo(position, map.getZoom() > 10 ? map.getZoom() : 13);
+      if (posLat && posLng) {
+        map.flyTo([posLat, posLng], map.getZoom() > 10 ? map.getZoom() : 13);
       }
-    }, [position?.[0], position?.[1], map]);
+    }, [posLat, posLng, map]);
 
     return position ? <Marker position={position} icon={customIcon} /> : null;
   }

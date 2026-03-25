@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaTimes, FaUserShield, FaCheckCircle, FaTimesCircle, FaEye } from 'react-icons/fa';
+import { FaUserShield, FaCheckCircle, FaTimesCircle, FaEye } from 'react-icons/fa';
 
 const ReviewModal = ({ isOpen, onClose, user, onApprove, onReject }) => {
   const [notes, setNotes] = useState('');
