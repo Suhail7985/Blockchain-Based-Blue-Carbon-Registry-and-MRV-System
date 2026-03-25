@@ -234,7 +234,7 @@ const PlantationSubmission = () => {
             <FaLandmark className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-bc-green-900">Jurisdictional Routing</h3>
+            <h3 className="text-sm font-bold text-bc-green-900">CarbonSetu Jurisdictional Routing</h3>
             <p className="text-xs text-bc-green-800 mt-0.5">
               Based on your profile, this plantation will be routed to the <strong>{form.panchayatName || 'Local Panchayat'}</strong> in <strong>{form.district}, {form.state}</strong> for autonomous verification.
             </p>

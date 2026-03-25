@@ -303,7 +303,7 @@ const NccrDashboard = () => {
 
       {analytics && (
         <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">National Carbon Analytics</h2>
+          <h1 className="text-2xl font-bold text-gray-900">CarbonSetu: National Governance Console</h1>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
               <p className="text-sm text-gray-500">Verified Plantations</p>

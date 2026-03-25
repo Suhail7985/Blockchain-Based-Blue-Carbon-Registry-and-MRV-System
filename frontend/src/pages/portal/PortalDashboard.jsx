@@ -68,7 +68,7 @@ const PortalDashboard = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
           Welcome, {user?.name}
         </h1>
-        <p className="text-gray-600">National Blue Carbon Registry & MRV System</p>
+        <p className="text-gray-600">CarbonSetu: Bridging Communities to Carbon Markets</p>
         {user?.referenceId && (
           <p className="text-sm text-gray-500 mt-2">
             Reference ID: <span className="font-mono font-medium">{user.referenceId}</span>

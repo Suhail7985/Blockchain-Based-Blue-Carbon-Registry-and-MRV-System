@@ -157,7 +157,7 @@ const PanchayatDashboard = () => {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Local Panchayat Registry Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">CarbonSetu: Local Panchayat Dashboard</h1>
           <div className="flex items-center gap-2 mt-1 text-bc-green-700">
              <FaLandmark className="w-4 h-4" />
              <span className="text-sm font-semibold uppercase tracking-wider">Jurisdiction: {user?.district}, {user?.state}</span>
