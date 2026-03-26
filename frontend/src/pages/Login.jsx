@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FaLock, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaLock, FaEnvelope, FaEye, FaEyeSlash, FaArrowLeft } from 'react-icons/fa';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -39,7 +39,16 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gov-blue-50 via-white to-carbon-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white rounded-lg shadow-xl p-8 border-2 border-gov-blue-200">
+      <div className="max-w-md w-full space-y-8 bg-white rounded-lg shadow-xl p-8 border-2 border-gov-blue-200 relative">
+        {/* Back Button */}
+        <Link 
+          to="/" 
+          className="absolute top-8 left-8 flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gov-blue-600 transition-colors"
+        >
+          <FaArrowLeft className="w-3 h-3" />
+          Back to Home
+        </Link>
+
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto w-16 h-16 bg-gov-blue-600 rounded-full flex items-center justify-center mb-4">

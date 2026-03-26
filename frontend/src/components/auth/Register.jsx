@@ -7,7 +7,7 @@ import {
   FiUser, FiMail, FiLock, FiPhone, FiBriefcase,
   FiMapPin, FiMap, FiFileText, FiUploadCloud,
   FiUserPlus, FiLoader, FiCheckCircle, FiXCircle,
-  FiGlobe, FiAlertCircle
+  FiGlobe, FiAlertCircle, FiArrowLeft
 } from 'react-icons/fi';
 import { FaTree } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
@@ -160,6 +160,15 @@ export default function Register() {
         transition={{ duration: 0.5 }}
         className="max-w-4xl w-full relative z-10"
       >
+        {/* Back Button */}
+        <Link 
+          to="/" 
+          className="absolute -top-4 left-0 flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-green-600 transition-colors z-20"
+        >
+          <FiArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
+
         <div className="text-center mb-8 sticky top-0 z-20">
           <motion.div
             initial={{ scale: 0 }}
