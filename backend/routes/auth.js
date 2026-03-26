@@ -310,7 +310,7 @@ router.post(
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid email or password',
+          message: 'This email address is not registered. Please check your spelling or register for a new account.',
         });
       }
 
@@ -328,7 +328,7 @@ router.post(
       if (!isPasswordValid) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid email or password',
+          message: 'The password you entered is incorrect. Please try again or use the "Forgot password" link.',
         });
       }
 

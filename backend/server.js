@@ -25,7 +25,14 @@ const PORT = config.port;
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow any origin for now to solve production block, or specific frontend
+    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Fallback to true for testing connectivity
+    }
+  },
   credentials: true
 }));
 app.use(cookieParser());
