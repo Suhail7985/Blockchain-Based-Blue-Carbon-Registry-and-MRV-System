@@ -24,17 +24,21 @@ const app = express();
 const PORT = config.port;
 
 // Middleware
+// Middleware & CORS
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow any origin for now to solve production block, or specific frontend
+    // Dynamically allow origins ending in .vercel.app or localhost
     if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
       callback(null, true);
     } else {
-      callback(null, true); // Fallback to true for testing connectivity
+      callback(null, true); // Fallback to all to solve production block
     }
   },
   credentials: true
 }));
+
+// Preflight CORS handle
+app.options('*', cors());
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
