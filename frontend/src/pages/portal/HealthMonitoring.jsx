@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
-import { FaHeartbeat, FaSeedling, FaCheckCircle, FaTimesCircle, FaClock, FaLeaf, FaSync, FaChevronDown, FaChevronUp, FaExclamationTriangle } from 'react-icons/fa';
+import { FaHeartbeat, FaSeedling, FaCheckCircle, FaSync, FaExclamationTriangle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const CHECK_ICONS = {

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import api, { getCarbonSummary } from '../services/api';
 

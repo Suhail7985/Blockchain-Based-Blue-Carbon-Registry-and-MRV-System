@@ -163,7 +163,7 @@ export default function Register() {
         {/* Back Button */}
         <Link 
           to="/" 
-          className="absolute -top-4 left-0 flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-green-600 transition-colors z-20"
+          className="absolute top-0 left-0 flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-green-600 transition-colors z-20"
         >
           <FiArrowLeft className="w-4 h-4" />
           Back to Home
