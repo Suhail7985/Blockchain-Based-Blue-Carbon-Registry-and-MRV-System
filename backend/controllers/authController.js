@@ -78,7 +78,7 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'This email address is not registered. Please check your spelling or register for a new account.'
       });
     }
 
@@ -88,7 +88,7 @@ const login = async (req, res) => {
     if (!isPasswordMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'The password you entered is incorrect. Please try again or use the "Forgot password" link.'
       });
     }
 
