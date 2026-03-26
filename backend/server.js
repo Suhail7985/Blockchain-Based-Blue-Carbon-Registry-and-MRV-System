@@ -29,13 +29,13 @@ const PORT = config.port;
 // 1. High-Priority CORS & OPTIONS Handler (Must be at the very top)
 const allowedOrigins = [
   'https://carbonsetu.vercel.app',
-  'https://carbonsetu-backend.vercel.app',
+  'https://carbonsetu-indol.vercel.app',
   'http://localhost:3000'
 ];
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('localhost')) {
+  if (!origin || allowedOrigins.includes(origin) || origin.includes('onrender.com') || origin.includes('vercel.app') || origin.includes('localhost')) {
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
   }
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -118,12 +118,10 @@ if (process.env.NODE_ENV !== 'test') {
   .then(() => console.log('✅ MongoDB connected successfully'))
   .catch((error) => console.error('❌ MongoDB connection error:', error));
 
-  // Only listen if not on Vercel
-  if (!process.env.VERCEL) {
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  }
+  // Always listen (Render is a traditional server, not serverless)
+  app.listen(PORT, () => {
+    console.log(`🚀 CarbonSetu Server running on port ${PORT}`);
+  });
 }
 
 export default app;
