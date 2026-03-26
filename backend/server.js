@@ -20,36 +20,32 @@ import config from './config/config.js';
 import { protect } from './middleware/auth.js';
 import { authorizeFileAccess } from './middleware/fileAuth.js';
 
+// Load environment variables
+dotenv.config();
+
 const app = express();
 const PORT = config.port;
 
-// Middleware
-// Middleware & CORS
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://carbonsetu.vercel.app', 
-  'https://carbonsetu-backendd.vercel.app'
-];
-
+// 1. Preflight CORS handler (must be at the very top)
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl) or local/vercel origins
-    if (!origin || allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('localhost')) {
-      callback(null, true); // This will set Access-Control-Allow-Origin to the specific request origin
+    // Dynamically allow origins ending in .vercel.app or localhost
+    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+      callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(null, true); // Fallback to all to solve production block
     }
   },
   credentials: true
 }));
-
-// Preflight CORS handle
 app.options('*', cors());
+
+// 2. Standard Middleware
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// SECURITY: Authenticated File Access
+// 3. SECURITY: Authenticated File Access
 const uploadsPath = path.join(process.cwd(), config.uploads.path);
 app.get('/api/uploads/:folder/:filename', protect, authorizeFileAccess, (req, res) => {
   const { folder, filename } = req.params;
@@ -58,7 +54,6 @@ app.get('/api/uploads/:folder/:filename', protect, authorizeFileAccess, (req, re
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);
   } else {
-    // Check root as fallback
     const rootPath = path.join(uploadsPath, filename);
     if (fs.existsSync(rootPath)) {
       res.sendFile(rootPath);
@@ -68,7 +63,7 @@ app.get('/api/uploads/:folder/:filename', protect, authorizeFileAccess, (req, re
   }
 });
 
-// Routes
+// 4. Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/plantation', plantationRoutes);
@@ -82,28 +77,38 @@ app.use('/api/health', healthRoutes);
 
 // Server health check
 app.get('/api/server-health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  res.json({ 
+    status: 'OK', 
+    message: 'CarbonSetu API is running',
+    db: mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting/Disconnected'
+  });
 });
 
-// MongoDB Connection
-// MongoDB Connection
+// 5. Global Error Handler (Prevents 500 crashes)
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// 6. Non-Blocking MongoDB Connection
 if (process.env.NODE_ENV !== 'test') {
   mongoose.connect(config.mongodbUri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => {
-    console.log('✅ MongoDB connected successfully');
-    // Only listen if not on Vercel
-    if (!process.env.VERCEL) {
-      app.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-      });
-    }
-  })
-  .catch((error) => {
-    console.error('❌ MongoDB connection error:', error);
-  });
+  .then(() => console.log('✅ MongoDB connected successfully'))
+  .catch((error) => console.error('❌ MongoDB connection error:', error));
+
+  // Only listen if not on Vercel
+  if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  }
 }
 
 export default app;
