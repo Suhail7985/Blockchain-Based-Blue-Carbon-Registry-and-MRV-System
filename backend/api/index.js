@@ -82,22 +82,28 @@ app.get('/api/uploads/:folder/:filename', protect, authorizeFileAccess, (req, re
 });
 
 // 4. Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/plantation', plantationRoutes);
-app.use('/api/carbon', carbonRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/panchayat', panchayatRoutes);
-app.use('/api/ledger', ledgerRoutes);
-app.use('/api/ngo', ngoRoutes);
-app.use('/api/public', publicRoutes);
-app.use('/api/health', healthRoutes);
+const attachRoutes = (prefix = '') => {
+  app.use(`${prefix}/auth`, authRoutes);
+  app.use(`${prefix}/profile`, profileRoutes);
+  app.use(`${prefix}/plantation`, plantationRoutes);
+  app.use(`${prefix}/carbon`, carbonRoutes);
+  app.use(`${prefix}/admin`, adminRoutes);
+  app.use(`${prefix}/panchayat`, panchayatRoutes);
+  app.use(`${prefix}/ledger`, ledgerRoutes);
+  app.use(`${prefix}/ngo`, ngoRoutes);
+  app.use(`${prefix}/public`, publicRoutes);
+  app.use(`${prefix}/health`, healthRoutes);
+};
+
+// Support both /api/auth and /auth patterns
+attachRoutes('/api');
+attachRoutes('');
 
 // Server health check
-app.get('/api/server-health', (req, res) => {
+app.get(['/api/server-health', '/server-health'], (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'CarbonSetu API (Serverless) is running',
+    message: 'CarbonSetu API (Serverless Optimized) is running',
     db: mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting/Disconnected'
   });
 });
