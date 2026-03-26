@@ -31,7 +31,8 @@ const PORT = config.port;
 // 1. High-Priority CORS & OPTIONS Handler (Must be at the very top)
 const allowedOrigins = [
   'https://carbonsetu.vercel.app', 
-  'https://carbonsetu-backendd.vercel.app',
+  'https://carbonsetu-backend.vercel.app',
+  'https://carbonsetu-backendd.vercel.app', // keeping old one just in case
   'http://localhost:3000'
 ];
 
