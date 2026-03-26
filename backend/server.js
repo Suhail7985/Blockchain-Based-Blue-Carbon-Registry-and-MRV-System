@@ -26,19 +26,34 @@ dotenv.config();
 const app = express();
 const PORT = config.port;
 
-// 1. Preflight CORS handler (must be at the very top)
+// 1. High-Priority CORS & OPTIONS Handler (Must be at the very top)
+const allowedOrigins = [
+  'https://carbonsetu.vercel.app', 
+  'https://carbonsetu-backendd.vercel.app',
+  'http://localhost:3000'
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (!origin || allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('localhost')) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+
+  // Handle Preflight (OPTIONS) instantly to prevent 500s
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// Enable standard CORS middleware as backup
 app.use(cors({
-  origin: function (origin, callback) {
-    // Dynamically allow origins ending in .vercel.app or localhost
-    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Fallback to all to solve production block
-    }
-  },
+  origin: true,
   credentials: true
 }));
-app.options('*', cors());
 
 // 2. Standard Middleware
 app.use(cookieParser());
