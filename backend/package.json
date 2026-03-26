@@ -2,11 +2,11 @@
   "name": "signup-backend",
   "version": "1.0.0",
   "description": "Backend for signup system with OTP verification",
-  "main": "server.js",
+  "main": "api/index.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js",
     "test:email": "node scripts/test-email.js",
     "test:db": "node scripts/test-db.js",
     "check": "node check-setup.js"
