@@ -25,13 +25,19 @@ const PORT = config.port;
 
 // Middleware
 // Middleware & CORS
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://carbonsetu.vercel.app', 
+  'https://carbonsetu-backendd.vercel.app'
+];
+
 app.use(cors({
-  origin: (origin, callback) => {
-    // Dynamically allow origins ending in .vercel.app or localhost
-    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
-      callback(null, true);
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl) or local/vercel origins
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('localhost')) {
+      callback(null, true); // This will set Access-Control-Allow-Origin to the specific request origin
     } else {
-      callback(null, true); // Fallback to all to solve production block
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true
