@@ -7,7 +7,10 @@ import {
   panchayatRejectPlantation,
   getPanchayatManualKyc,
   panchayatApproveManualKyc,
-  panchayatRejectManualKyc
+  panchayatRejectManualKyc,
+  getPanchayatPendingLand,
+  panchayatApproveLand,
+  panchayatRejectLand
 } from '../../services/api';
 import toast from 'react-hot-toast';
 import ActionModal from '../../components/portal/ActionModal';
@@ -46,15 +49,23 @@ const PanchayatDashboard = () => {
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryTitle, setGalleryTitle] = useState('');
 
+  // Land specific state
+  const [pendingLand, setPendingLand] = useState([]);
+  const [showLandApproveModal, setShowLandApproveModal] = useState(false);
+  const [showLandRejectModal, setShowLandRejectModal] = useState(false);
+  const [selectedLandUserId, setSelectedLandUserId] = useState(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [pRes, kycRes] = await Promise.all([
+      const [pRes, kycRes, landRes] = await Promise.all([
         getPanchayatPlantations(),
-        getPanchayatManualKyc()
+        getPanchayatManualKyc(),
+        getPanchayatPendingLand()
       ]);
       if (pRes.success) setPlantations(pRes.plantations || []);
       if (kycRes.success) setManualKyc(kycRes.users || []);
+      if (landRes.success) setPendingLand(landRes.users || []);
     } catch (e) {
       toast.error('Failed to load dashboard data');
     } finally {
@@ -122,6 +133,38 @@ const PanchayatDashboard = () => {
       } else toast.error('Failed to reject identity');
     } catch (e) {
       toast.error('Identity rejection error');
+    }
+  };
+
+  const confirmLandApprove = async () => {
+    if (!selectedLandUserId) return;
+    try {
+      const res = await panchayatApproveLand(selectedLandUserId);
+      if (res.success) {
+        toast.success('Land document verified. Account activated!');
+        load();
+      } else toast.error(res.message || 'Failed to verify land');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Land verification error');
+    } finally {
+      setSelectedLandUserId(null);
+      setShowLandApproveModal(false);
+    }
+  };
+
+  const confirmLandReject = async (reason) => {
+    if (!selectedLandUserId) return;
+    try {
+      const res = await panchayatRejectLand(selectedLandUserId, reason);
+      if (res.success) {
+        toast.success('Land document rejected.');
+        load();
+      } else toast.error(res.message || 'Failed to reject land');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Land rejection error');
+    } finally {
+      setSelectedLandUserId(null);
+      setShowLandRejectModal(false);
     }
   };
 
@@ -274,6 +317,70 @@ const PanchayatDashboard = () => {
                        >
                          <FaShieldAlt /> Review Identity
                        </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Pending Land Approvals Queue */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 py-6 mb-8">
+        <div className="px-6 mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Pending Land Document Approvals</h2>
+        </div>
+        {loading ? (
+          <div className="px-6 text-gray-500 text-sm">Loading...</div>
+        ) : pendingLand.length === 0 ? (
+          <div className="px-6 text-gray-500 text-sm">No users currently pending land verification.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase">Applicant</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase">Land Size</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase">Document</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {pendingLand.map((u) => (
+                  <tr key={u._id}>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{u.name}</div>
+                      <div className="text-xs text-gray-500">{u.district}, {u.state}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{u.landAreaHectares || 1} Hectares</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <a 
+                        href={`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/uploads/land/${u.landDocumentPath}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-medium text-bc-green-700 bg-bc-green-50 hover:bg-bc-green-100 px-3 py-1.5 rounded inline-block transition-colors"
+                      >
+                        View Document
+                      </a>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => { setSelectedLandUserId(u._id); setShowLandApproveModal(true); }}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded shadow-sm text-xs font-bold transition-all flex items-center gap-1"
+                        >
+                          <FaCheckCircle /> Approve
+                        </button>
+                        <button 
+                          onClick={() => { setSelectedLandUserId(u._id); setShowLandRejectModal(true); }}
+                          className="px-3 py-1.5 bg-white border border-red-200 hover:bg-red-50 text-red-600 rounded shadow-sm text-xs font-bold transition-all flex items-center gap-1"
+                        >
+                          <FaTimesCircle /> Reject
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -467,6 +574,25 @@ const PanchayatDashboard = () => {
         mode="reject"
         title="Reject Plantation"
         message="Please provide a clear reason for rejection. The citizen will be able to see these remarks and resubmit corrections."
+        placeholder="Reason for rejection (mandatory)..."
+      />
+
+      <ActionModal
+        isOpen={showLandApproveModal}
+        onClose={() => { setShowLandApproveModal(false); setSelectedLandUserId(null); }}
+        onConfirm={confirmLandApprove}
+        mode="approve"
+        title="Approve Land Document"
+        message="Are you sure you want to approve this land document? This will activate the user account and officially recognize their land ownership. They will be able to register plantations immediately."
+      />
+
+      <ActionModal
+        isOpen={showLandRejectModal}
+        onClose={() => { setShowLandRejectModal(false); setSelectedLandUserId(null); }}
+        onConfirm={confirmLandReject}
+        mode="reject"
+        title="Reject Land Document"
+        message="Please provide a clear reason for rejection. The citizen will need to upload a corrected document."
         placeholder="Reason for rejection (mandatory)..."
       />
     </div>

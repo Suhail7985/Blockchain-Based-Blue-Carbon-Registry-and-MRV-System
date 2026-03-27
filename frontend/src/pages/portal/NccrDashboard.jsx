@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StatusBanner from '../../components/portal/StatusBanner';
@@ -13,13 +13,9 @@ import {
   updateCarbonSettings,
   getPanchayats,
   createPanchayat,
-  updatePanchayatStatus,
-  adminGetSpecies,
-  adminUpdateSpecies,
-  adminCreateSpecies
 } from '../../services/api';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend
 } from 'recharts';
 import {
   FaCheckCircle,
@@ -36,6 +32,7 @@ import { buildLifecycleTimestamps } from '../../utils/plantationLifecycle';
 import toast from 'react-hot-toast';
 
 const PENDING_NCCR = 'PENDING_NCCR';
+const TOKEN_MINTED = 'TOKEN_MINTED';
 
 const NccrDashboard = () => {
   const { user } = useAuth();
@@ -61,12 +58,8 @@ const NccrDashboard = () => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [settings, setSettings] = useState(null);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [speciesList, setSpeciesList] = useState([]);
-  const [editingSpecies, setEditingSpecies] = useState(null);
-  const [showSpeciesForm, setShowSpeciesForm] = useState(false);
-  const [newSpecies, setNewSpecies] = useState({ name: '', scientificName: '', category: 'Mangrove', avgBiomassPerTreeKg: 0, carbonFraction: 0.47, co2eqFactor: 3.67 });
 
-  const load = useCallback(() => {
+  const load = () => {
     setLoading(true);
     Promise.all([
       getAdminPlantations(PENDING_NCCR),
@@ -75,26 +68,22 @@ const NccrDashboard = () => {
       getAuditLogs(50),
       getCarbonSettings(),
       getPanchayats(),
-      adminGetSpecies()
     ])
-      .then(([pending, statsRes, analyticsRes, auditRes, settingsRes, panchayatRes, speciesRes]) => {
+      .then(([pending, statsRes, analyticsRes, auditRes, settingsRes, panchayatRes]) => {
         if (pending.success && pending.plantations) setPlantations(pending.plantations);
         if (statsRes.success) setStats(statsRes);
         if (analyticsRes.success) setAnalytics(analyticsRes);
         if (auditRes.success && auditRes.logs) setAuditLogs(auditRes.logs);
         if (settingsRes.success) setSettings(settingsRes.settings);
         if (panchayatRes.success && panchayatRes.panchayats) setPanchayats(panchayatRes.panchayats);
-        if (speciesRes.success) setSpeciesList(speciesRes.species);
       })
       .catch(() => toast.error('Failed to load admin data'))
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, []);
 
   const handleApprove = async (id, notes) => {
     setActionId(id);
@@ -124,46 +113,6 @@ const NccrDashboard = () => {
     } catch (e) {
       toast.error(e.response?.data?.message || 'Reject failed');
       setRejectingId(null);
-    }
-  };
-
-  const togglePanchayatStatus = async (id, currentStatus) => {
-    const next = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    try {
-      const res = await updatePanchayatStatus(id, next);
-      if (res.success) {
-        toast.success(`Panchayat ${next}`);
-        load();
-      }
-    } catch (e) {
-      toast.error('Failed to update status');
-    }
-  };
-
-  const handleUpdateSpecies = async (id, data) => {
-    try {
-      const res = await adminUpdateSpecies(id, data);
-      if (res.success) {
-        toast.success('Species updated');
-        setEditingSpecies(null);
-        load();
-      }
-    } catch (e) {
-      toast.error('Update failed');
-    }
-  };
-
-  const handleCreateSpecies = async () => {
-    try {
-      const res = await adminCreateSpecies(newSpecies);
-      if (res.success) {
-        toast.success('Species created');
-        setShowSpeciesForm(false);
-        setNewSpecies({ name: '', scientificName: '', category: 'Mangrove', avgBiomassPerTreeKg: 0, carbonFraction: 0.47, co2eqFactor: 3.67 });
-        load();
-      }
-    } catch (e) {
-      toast.error('Creation failed');
     }
   };
 
@@ -262,7 +211,7 @@ const NccrDashboard = () => {
         NCCR Admin Dashboard
       </h1>
       <p className="text-gray-600 mb-6">
-        National CarbonSetu operations console – manage Panchayats and approve verified plantations.
+        National Blue Carbon Registry operations console – manage Panchayats and approve verified plantations.
       </p>
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -299,7 +248,7 @@ const NccrDashboard = () => {
 
       {analytics && (
         <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">CarbonSetu: National Governance Console</h1>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">National Carbon Analytics</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
               <p className="text-sm text-gray-500">Verified Plantations</p>
@@ -394,14 +343,10 @@ const NccrDashboard = () => {
 
       {settings && (
         <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">NCCR Global Governance Settings</h2>
-            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase">Legacy Fallback Configuration</span>
-          </div>
-          <p className="text-xs text-gray-500 mb-6 italic">Note: These values are used ONLY if a plantation uses a species not found in the scientific registry below.</p>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Governance Settings – Carbon Model</h2>
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <label className="text-sm text-gray-700">
-              Default Biomass per Tree (kg)
+              Average Biomass per Tree (kg)
               <input
                 type="number"
                 value={settings.avgBiomassPerTreeKg}
@@ -412,7 +357,7 @@ const NccrDashboard = () => {
               />
             </label>
             <label className="text-sm text-gray-700">
-              Default Carbon Fraction
+              Carbon Fraction
               <input
                 type="number"
                 step="0.01"
@@ -423,7 +368,37 @@ const NccrDashboard = () => {
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               />
             </label>
-            {/* ... other settings ... */}
+            <label className="text-sm text-gray-700">
+              CO₂ Multiplier
+              <input
+                type="number"
+                step="0.01"
+                value={settings.co2eqFactor}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, co2eqFactor: Number(e.target.value) }))
+                }
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </label>
+            <label className="text-sm text-gray-700">
+              Token Rule
+              <input
+                type="text"
+                value={settings.tokenRule || ''}
+                onChange={(e) => setSettings((s) => ({ ...s, tokenRule: e.target.value }))}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={!!settings.autoMintEnabled}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, autoMintEnabled: e.target.checked }))
+                }
+              />
+              Enable automatic token minting on approval
+            </label>
           </div>
           <div className="flex justify-between items-center">
             <p className="text-xs text-gray-500">
@@ -456,88 +431,6 @@ const NccrDashboard = () => {
           </div>
         </section>
       )}
-
-      {/* Scientific Species Registry */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-             <FaLeaf className="text-bc-green-600" /> Scientific Species Registry
-           </h2>
-           <button 
-             onClick={() => setShowSpeciesForm(!showSpeciesForm)}
-             className="text-xs font-bold text-bc-green-700 hover:text-bc-green-800"
-           >
-             {showSpeciesForm ? 'Cancel' : '+ Add New Species'}
-           </button>
-        </div>
-
-        {showSpeciesForm && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 grid sm:grid-cols-3 gap-4">
-             <input placeholder="Species Name" value={newSpecies.name} onChange={e => setNewSpecies({...newSpecies, name: e.target.value})} className="px-3 py-2 text-sm border rounded-lg" />
-             <input placeholder="Scientific Name" value={newSpecies.scientificName} onChange={e => setNewSpecies({...newSpecies, scientificName: e.target.value})} className="px-3 py-2 text-sm border rounded-lg" />
-             <select value={newSpecies.category} onChange={e => setNewSpecies({...newSpecies, category: e.target.value})} className="px-3 py-2 text-sm border rounded-lg">
-               <option>Mangrove</option>
-               <option>Terrestrial</option>
-               <option>Seagrass</option>
-             </select>
-             <input type="number" placeholder="Biomass (kg)" value={newSpecies.avgBiomassPerTreeKg} onChange={e => setNewSpecies({...newSpecies, avgBiomassPerTreeKg: Number(e.target.value)})} className="px-3 py-2 text-sm border rounded-lg" />
-             <input type="number" step="0.01" placeholder="Carbon Fraction" value={newSpecies.carbonFraction} onChange={e => setNewSpecies({...newSpecies, carbonFraction: Number(e.target.value)})} className="px-3 py-2 text-sm border rounded-lg" />
-             <button onClick={handleCreateSpecies} className="bg-bc-green-600 text-white text-xs font-bold rounded-lg py-2">Create Species</button>
-          </div>
-        )}
-
-        <div className="overflow-x-auto border border-gray-100 rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200 text-xs">
-            <thead className="bg-gray-50/50">
-              <tr>
-                <th className="px-4 py-3 text-left font-bold text-gray-500">Species</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500">Category</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500">Biomass (kg/tree)</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500">C-Fraction</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-500">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {speciesList.map(s => (
-                <tr key={s._id} className="hover:bg-gray-50 group transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-bold text-gray-900">{s.name}</div>
-                    <div className="text-[10px] italic text-gray-500">{s.scientificName}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{s.category}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {editingSpecies === s._id ? (
-                      <input type="number" value={s.avgBiomassPerTreeKg} onChange={e => {
-                        const updated = [...speciesList];
-                        updated.find(x => x._id === s._id).avgBiomassPerTreeKg = Number(e.target.value);
-                        setSpeciesList(updated);
-                      }} className="w-20 px-1 border rounded" />
-                    ) : s.avgBiomassPerTreeKg}
-                  </td>
-                  <td className="px-4 py-3">
-                    {editingSpecies === s._id ? (
-                      <input type="number" step="0.01" value={s.carbonFraction} onChange={e => {
-                        const updated = [...speciesList];
-                        updated.find(x => x._id === s._id).carbonFraction = Number(e.target.value);
-                        setSpeciesList(updated);
-                      }} className="w-20 px-1 border rounded" />
-                    ) : s.carbonFraction}
-                  </td>
-                  <td className="px-4 py-3">
-                    {editingSpecies === s._id ? (
-                      <button onClick={() => handleUpdateSpecies(s._id, s)} className="text-bc-green-600 font-bold">Save</button>
-                    ) : (
-                      <button onClick={() => setEditingSpecies(s._id)} className="text-gray-400 group-hover:text-bc-green-600 font-bold transition-colors">Edit</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Panchayat Approvals (Pending NCCR)</h2>
@@ -726,39 +619,23 @@ const NccrDashboard = () => {
                 <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">District</th>
                 <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">State</th>
                 <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Panchayat ID</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {panchayats.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-gray-500">
+                  <td colSpan={5} className="px-4 py-4 text-center text-gray-500">
                     No Panchayats onboarded yet.
                   </td>
                 </tr>
               ) : (
                 panchayats.map((p) => (
-                  <tr key={p._id} className={p.accountStatus === 'SUSPENDED' ? 'bg-red-50/30' : ''}>
-                    <td className="px-4 py-2 text-gray-900 border-l-4 border-transparent" style={{ borderLeftColor: p.accountStatus === 'SUSPENDED' ? '#EF4444' : 'transparent' }}>
-                      <div className="font-bold">{p.name}</div>
-                      {p.accountStatus === 'SUSPENDED' && <span className="text-[10px] text-red-600 font-bold uppercase">Suspended</span>}
-                    </td>
+                  <tr key={p._id}>
+                    <td className="px-4 py-2 text-gray-900">{p.name}</td>
                     <td className="px-4 py-2 text-gray-700">{p.email}</td>
                     <td className="px-4 py-2 text-gray-700">{p.district}</td>
                     <td className="px-4 py-2 text-gray-700">{p.state}</td>
                     <td className="px-4 py-2 font-mono text-xs text-gray-700">{p.panchayatId || '—'}</td>
-                    <td className="px-4 py-2">
-                       <button 
-                         onClick={() => togglePanchayatStatus(p._id, p.accountStatus || 'ACTIVE')}
-                         className={`text-xs font-bold px-3 py-1 rounded-full border transition-all ${
-                           p.accountStatus === 'SUSPENDED' 
-                            ? 'border-emerald-600 text-emerald-600 hover:bg-emerald-50' 
-                            : 'border-red-600 text-red-600 hover:bg-red-50'
-                         }`}
-                       >
-                         {p.accountStatus === 'SUSPENDED' ? 'Activate' : 'Suspend'}
-                       </button>
-                    </td>
                   </tr>
                 ))
               )}
@@ -779,7 +656,6 @@ const NccrDashboard = () => {
                 <tr>
                   <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Time</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Action</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Subject</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Role</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">User</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Old → New</th>
@@ -791,25 +667,11 @@ const NccrDashboard = () => {
                     <td className="px-4 py-2 text-xs text-gray-600">
                       {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
                     </td>
-                    <td className="px-4 py-2 text-gray-800">{log.action.replace(/_/g, ' ')}</td>
-                    <td className="px-4 py-2">
-                       {log.plantationId?.plantationId ? (
-                         <button 
-                           onClick={() => {
-                             setSearchTerm(log.plantationId.plantationId);
-                             setFilterStatus('');
-                             window.scrollTo({ top: 300, behavior: 'smooth' });
-                           }}
-                           className="text-bc-green-700 font-mono text-xs font-bold hover:underline bg-bc-green-50 px-2 py-1 rounded"
-                         >
-                           {log.plantationId.plantationId}
-                         </button>
-                       ) : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 font-medium">{log.role || '—'}</td>
+                    <td className="px-4 py-2 text-gray-800">{log.action}</td>
+                    <td className="px-4 py-2 text-gray-700">{log.role || '—'}</td>
                     <td className="px-4 py-2 text-gray-700">
                       {log.performedBy
-                        ? `${log.performedBy.name || ''}`
+                        ? `${log.performedBy.name || ''} (${log.performedBy.email || ''})`
                         : '—'}
                     </td>
                     <td className="px-4 py-2 text-xs text-gray-700">

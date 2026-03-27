@@ -10,7 +10,6 @@ import { PLANTATION_STATUS } from '../constants/plantationStatus.js';
 import { ACCOUNT_STATUS } from '../constants/accountStatus.js';
 import { auditLog } from '../utils/auditLog.js';
 import { analyzePlantationsRisk } from '../utils/fraud.js';
-import { finalizePlantationApproval } from '../utils/verification.js';
 
 const router = express.Router();
 
@@ -60,58 +59,34 @@ router.patch('/plantations/:id/approve', async (req, res) => {
     }
 
     const previousStatus = plantation.status;
-    const remarks = req.body.remarks || '';
-
-    // Perform Risk Analysis for Jurisdictional Autonomy
-    const riskResults = analyzePlantationsRisk([plantation]);
-    const isLowRisk = riskResults[0]?.riskScore === 'LOW';
-
-    if (isLowRisk) {
-      // 1. Autonomous Approval (Finalize & Mint)
-      await finalizePlantationApproval(plantation._id, req.user.id, 'panchayat', remarks);
-      
-      auditLog('PANCHAYAT_APPROVE_AUTONOMOUS', req.user.id, 'autonomous_approval', {
-        plantationId: plantation.plantationId,
-        area: `${plantation.district}, ${plantation.state}`
-      });
-
-      return res.json({
-        success: true,
-        message: 'Autonomous approval confirmed. Carbon tokens are being minted.',
-        plantation: await Plantation.findById(plantation._id).lean()
-      });
-    }
-
-    // 2. High Risk Escalation (Pending NCCR)
     plantation.status = PLANTATION_STATUS.PENDING_NCCR;
     plantation.panchayatVerification = {
       panchayatId: req.user.id,
       decision: 'approved',
       timestamp: new Date(),
-      remarks,
+      remarks: req.body.remarks || '',
     };
     plantation.auditLog = plantation.auditLog || [];
-    plantation.auditLog.push({ action: 'panchayat_approved_escalated', by: req.user.id, timestamp: new Date(), remarks });
+    plantation.auditLog.push({ action: 'panchayat_approved', by: req.user.id, timestamp: new Date(), remarks: req.body.remarks });
     await plantation.save();
 
-    auditLog('PANCHAYAT_APPROVE_ESCALATED', req.user.id, 'escalated_to_nccr', {
+    auditLog('PANCHAYAT_APPROVE', req.user.id, 'plantation_approved', {
       plantationId: plantation.plantationId,
-      riskScore: riskResults[0]?.riskScore
+      plantationDbId: plantation._id,
     });
-    
     await AuditLog.create({
       plantationId: plantation._id,
-      action: 'panchayat_approved_escalated',
+      action: 'panchayat_approved',
       performedBy: req.user.id,
       role: 'panchayat',
       previousStatus,
       newStatus: plantation.status,
-      details: { remarks, risk: riskResults[0] },
+      details: { remarks: req.body.remarks || '' },
     });
 
     res.json({
       success: true,
-      message: 'Plantation flagged for investigation. Sent to NCCR for final review.',
+      message: 'Plantation approved. Sent to NCCR for final verification.',
       plantation: plantation.toObject(),
     });
   } catch (e) {

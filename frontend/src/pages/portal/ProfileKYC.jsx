@@ -184,24 +184,28 @@ const ProfileKYC = () => {
               <span>Aadhaar uploaded {user?.aadhaarDocumentPath ? '✔' : '—'}</span>
             </div>
             <div className="flex items-center gap-2">
-              {user?.aadhaarNameMatch === true ? (
+              {user?.manualReview?.status === 'APPROVED' ? (
+                <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
+              ) : user?.aadhaarNameMatch === true ? (
                 <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
               ) : user?.aadhaarNameMatch === false ? (
                 <FaTimesCircle className="w-5 h-5 text-red-500" />
               ) : (
                 <span className="text-gray-400">—</span>
               )}
-              <span>Name Match {user?.aadhaarNameMatch === true ? '✔' : user?.aadhaarNameMatch === false ? '❌' : '—'}</span>
+              <span>Name Match {user?.manualReview?.status === 'APPROVED' ? '✔ (Manual)' : user?.aadhaarNameMatch === true ? '✔' : user?.aadhaarNameMatch === false ? '❌' : '—'}</span>
             </div>
             <div className="flex items-center gap-2">
-              {user?.aadhaarDobMatch === true ? (
+              {user?.manualReview?.status === 'APPROVED' ? (
+                <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
+              ) : user?.aadhaarDobMatch === true ? (
                 <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
               ) : user?.aadhaarDobMatch === false ? (
                 <FaTimesCircle className="w-5 h-5 text-red-500" />
               ) : (
                 <span className="text-gray-400">—</span>
               )}
-              <span>DOB Match {user?.aadhaarDobMatch === true ? '✔' : user?.aadhaarDobMatch === false ? '❌' : '—'}</span>
+              <span>DOB Match {user?.manualReview?.status === 'APPROVED' ? '✔ (Manual)' : user?.aadhaarDobMatch === true ? '✔' : user?.aadhaarDobMatch === false ? '❌' : '—'}</span>
             </div>
             <div>
               <span

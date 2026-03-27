@@ -285,9 +285,9 @@ router.patch('/users/:id/make-panchayat', async (req, res) => {
 // Create new Panchayat user
 router.post('/panchayats', async (req, res) => {
   try {
-    const { name, email, district, state } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ success: false, message: 'Name and email are required' });
+    const { name, email, password, district, state } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
     }
     const existing = await User.findOne({ email });
     if (existing) {
@@ -298,12 +298,10 @@ router.post('/panchayats', async (req, res) => {
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
     const panchayatId = `PANCH-${districtCode}-${random}`;
 
-    const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!';
-
     const user = new User({
       name,
       email,
-      password: tempPassword,
+      password: password,
       role: 'panchayat',
       state,
       district,
@@ -329,7 +327,7 @@ router.post('/panchayats', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Panchayat user created',
+      message: 'Panchayat user created successfully.',
       user: user.getPublicProfile(),
     });
   } catch (error) {

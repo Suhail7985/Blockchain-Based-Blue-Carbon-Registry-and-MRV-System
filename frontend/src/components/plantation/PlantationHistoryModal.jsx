@@ -51,15 +51,15 @@ const PlantationHistoryModal = ({ plantation, onClose }) => {
     });
   }
 
-  // 5. Token Minting
+  // 5. Token Minting / Carbon Calculation
   if (plantation.tokenTxHash || plantation.carbonCalculation?.tokens) {
     events.push({
-      title: 'Carbon Credits Issued',
-      timestamp: plantation.updatedAt,
-      icon: <FaCheckCircle className="text-bc-green-500" />,
-      description: `Generated ${plantation.carbonCalculation?.tokens || 0} BCC tokens (1 token = 1 tCO2eq).`,
+      title: plantation.tokenTxHash ? 'Carbon Credits Issued' : 'Carbon Tokens Calculated',
+      timestamp: plantation.updatedAt || plantation.panchayatVerification?.timestamp || plantation.nccrVerification?.timestamp || plantation.createdAt || new Date(),
+      icon: <FaCheckCircle className={plantation.tokenTxHash ? "text-bc-green-500" : "text-amber-500"} />,
+      description: `Generated ${plantation.carbonCalculation?.tokens || 0} BCC tokens (1 token = 1 tCO2eq). ${!plantation.tokenTxHash ? 'Pending blockchain minting...' : ''}`,
       txHash: plantation.tokenTxHash,
-      status: 'completed',
+      status: plantation.tokenTxHash ? 'completed' : 'neutral',
     });
   }
 

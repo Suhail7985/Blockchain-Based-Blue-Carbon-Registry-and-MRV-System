@@ -123,7 +123,7 @@ const NgoDashboard = () => {
                     <td className="px-4 py-2 text-sm">
                       {u.aadhaarDocumentPath ? (
                         <a
-                          href={`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/uploads/aadhaar/${u.aadhaarDocumentPath}`}
+                          href={`${(process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '')}/uploads/aadhaar/${u.aadhaarDocumentPath}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-bc-green-700 hover:underline"
