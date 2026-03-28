@@ -244,4 +244,101 @@ router.patch('/kyc/:userId/reject', async (req, res) => {
   }
 });
 
+// ---- Land Verification (Panchayat) ----
+
+// GET /api/panchayat/land/pending
+router.get('/land/pending', async (req, res) => {
+  try {
+    const panchayatUser = await User.findById(req.user.id).select('district state').lean();
+    const district = panchayatUser?.district || req.query.district;
+
+    const users = await User.find({ accountStatus: ACCOUNT_STATUS.PENDING_VERIFICATION })
+      .select('name email district state landDocumentPath landAreaHectares createdAt')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    let inJurisdiction;
+    if (!district) {
+      inJurisdiction = users;
+    } else {
+      inJurisdiction = users.filter(
+        (u) => !u.district || (u.district || '').toLowerCase() === district.toLowerCase()
+      );
+    }
+
+    res.json({ success: true, users: inJurisdiction });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// PATCH /api/panchayat/land/:userId/approve
+router.patch('/land/:userId/approve', async (req, res) => {
+  try {
+    const target = await User.findById(req.params.userId).select('-password');
+    if (!target) return res.status(404).json({ success: false, message: 'User not found' });
+    if (target.accountStatus !== ACCOUNT_STATUS.PENDING_VERIFICATION) {
+      return res.status(400).json({ success: false, message: 'User is not pending land verification.' });
+    }
+
+    target.accountStatus = ACCOUNT_STATUS.ACTIVE;
+    target.landVerifiedAt = new Date();
+    
+    // update timeline
+    target.statusTimeline = [
+      { step: 'Email Verified', completed: true, completedAt: target.createdAt },
+      { step: 'Identity Verified', completed: true, completedAt: target.identityVerifiedAt || new Date() },
+      { step: 'Land Verified', completed: true, completedAt: new Date() },
+      { step: 'Account Activated', completed: true, completedAt: new Date() },
+    ];
+    await target.save();
+
+    auditLog('PANCHAYAT_LAND_APPROVE', req.user.id, 'land_approved', {
+      targetUserId: target._id,
+      referenceId: target.referenceId,
+    });
+
+    res.json({ success: true, message: 'Land approved. User account activated.', user: target.getPublicProfile() });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// PATCH /api/panchayat/land/:userId/reject
+router.patch('/land/:userId/reject', async (req, res) => {
+  try {
+    const target = await User.findById(req.params.userId).select('-password');
+    if (!target) return res.status(404).json({ success: false, message: 'User not found' });
+    if (target.accountStatus !== ACCOUNT_STATUS.PENDING_VERIFICATION) {
+      return res.status(400).json({ success: false, message: 'User is not pending land verification.' });
+    }
+
+    const reason = req.body.reason || 'Rejected by Panchayat';
+    
+    // Set status to IDENTITY_VERIFIED so they must re-upload land doc instead of Aadhaar
+    target.accountStatus = ACCOUNT_STATUS.IDENTITY_VERIFIED; 
+    target.rejectionReason = reason;
+
+    // Remove the bad document
+    target.landDocumentPath = null;
+
+    target.statusTimeline = [
+      { step: 'Email Verified', completed: true, completedAt: target.createdAt },
+      { step: 'Identity Verified', completed: true, completedAt: target.identityVerifiedAt || new Date() },
+      { step: 'Land Verified', completed: false, notes: reason },
+      { step: 'Account Activated', completed: false },
+    ];
+    await target.save();
+
+    auditLog('PANCHAYAT_LAND_REJECT', req.user.id, 'land_rejected', {
+      targetUserId: target._id,
+      reason,
+    });
+
+    res.json({ success: true, message: 'Land rejected.', user: target.getPublicProfile() });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 export default router;

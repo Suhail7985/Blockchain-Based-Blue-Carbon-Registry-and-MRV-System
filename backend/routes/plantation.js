@@ -200,4 +200,86 @@ router.post(
   }
 );
 
+// PATCH /api/plantation/:id/resubmit - resubmit a rejected plantation
+router.patch(
+  '/:id/resubmit',
+  uploadPlantationImages,
+  [
+    body('speciesName').optional().trim().notEmpty(),
+    body('treeCount').optional().isInt({ min: 1 }),
+    body('areaHectares').optional().isFloat({ min: 0 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
+      }
+
+      const plantationId = req.params.id;
+      const plantation = await Plantation.findOne({ _id: plantationId, userId: req.user.id });
+
+      if (!plantation) {
+        return res.status(404).json({ success: false, message: 'Plantation not found' });
+      }
+
+      if (plantation.status !== PLANTATION_STATUS.REJECTED) {
+        return res.status(400).json({ success: false, message: 'Only rejected plantations can be resubmitted' });
+      }
+
+      const { speciesName, treeCount, areaHectares } = req.body;
+
+      if (speciesName) plantation.speciesName = speciesName.trim();
+      if (treeCount) plantation.treeCount = parseInt(treeCount, 10);
+      if (areaHectares) {
+        const areaNum = parseFloat(areaHectares);
+        const land = await Land.findById(plantation.landId);
+        if (land && areaNum > land.areaHectares) {
+          return res.status(400).json({
+            success: false,
+            message: `Plantation area (${areaNum} ha) cannot exceed registered land area (${land.areaHectares} ha).`,
+          });
+        }
+        plantation.areaHectares = areaNum;
+      }
+
+      const newImagePaths = (req.files || []).map((f) => f.filename);
+      if (newImagePaths.length > 0) {
+        plantation.imagePaths = [...plantation.imagePaths, ...newImagePaths];
+      }
+
+      // Keep rejection history
+      const rejectHistory = plantation.rejectionHistory || [];
+      rejectHistory.push({
+        status: plantation.status,
+        remarks: plantation.panchayatVerification?.remarks || plantation.nccrVerification?.notes || 'Rejected',
+        timestamp: new Date()
+      });
+      plantation.rejectionHistory = rejectHistory;
+
+      // Reset verify statuses
+      plantation.status = PLANTATION_STATUS.PENDING_PANCHAYAT;
+      plantation.panchayatVerification = undefined;
+      plantation.nccrVerification = undefined;
+      
+      plantation.auditLog = plantation.auditLog || [];
+      plantation.auditLog.push({ action: 'resubmitted', userId: req.user.id, timestamp: new Date() });
+
+      await plantation.save();
+
+      auditLog('PLANTATION_RESUBMIT', req.user.id, 'plantation_resubmitted', {
+        plantationDbId: plantation._id,
+      });
+
+      res.json({
+        success: true,
+        message: 'Plantation resubmitted successfully. Pending Panchayat verification.',
+        plantation: plantation.toObject(),
+      });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message || 'Failed to resubmit plantation' });
+    }
+  }
+);
+
 export default router;

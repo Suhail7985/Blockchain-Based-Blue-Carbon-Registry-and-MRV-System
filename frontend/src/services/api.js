@@ -146,4 +146,15 @@ export const createPanchayat = (payload) => api.post('/admin/panchayats', payloa
 export const makeUserPanchayat = (userId, payload) =>
   api.patch(`/admin/users/${userId}/make-panchayat`, payload).then((r) => r.data);
 
+// Public species
+export const getSpecies = () => api.get('/public/species').then((r) => r.data);
+
+// Plantation Resubmit
+export const resubmitPlantation = (id, formData) => api.patch(`/plantation/${id}/resubmit`, formData).then((r) => r.data);
+
+// Panchayat Land Verification
+export const getPanchayatPendingLand = () => api.get('/panchayat/land/pending').then((r) => r.data);
+export const panchayatApproveLand = (userId) => api.patch(`/panchayat/land/${userId}/approve`).then((r) => r.data);
+export const panchayatRejectLand = (userId, reason) => api.patch(`/panchayat/land/${userId}/reject`, { reason }).then((r) => r.data);
+
 export default api;
