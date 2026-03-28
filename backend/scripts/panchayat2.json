@@ -1,0 +1,38 @@
+PANCHAYAT 2 FULL: {
+  "_id": "69c5768637434d85bad4f36a",
+  "name": "KapurthalaLocalPanchayat",
+  "email": "kapurthalalocalpanchayat@test.gov.in",
+  "role": "panchayat",
+  "accountStatus": "ACTIVE",
+  "panchayatId": "PANCH-KAPUR-WKXWC5",
+  "state": "Punjab",
+  "district": "Kapurthala",
+  "declarationAccepted": false,
+  "statusTimeline": [
+    {
+      "step": "Email Verified",
+      "completed": true,
+      "completedAt": "2026-03-26T18:10:14.077Z"
+    },
+    {
+      "step": "Identity Verified",
+      "completed": true,
+      "completedAt": "2026-03-26T18:10:14.077Z"
+    },
+    {
+      "step": "Land Verified",
+      "completed": true,
+      "completedAt": "2026-03-26T18:10:14.077Z"
+    },
+    {
+      "step": "Account Activated",
+      "completed": true,
+      "completedAt": "2026-03-26T18:10:14.077Z"
+    }
+  ],
+  "isEmailVerified": true,
+  "isVerified": true,
+  "createdAt": "2026-03-26T18:10:14.086Z",
+  "updatedAt": "2026-03-26T18:10:14.215Z",
+  "__v": 0
+}

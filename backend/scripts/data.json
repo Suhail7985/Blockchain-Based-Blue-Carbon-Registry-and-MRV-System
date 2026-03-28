@@ -1,0 +1,107 @@
+PANCHAYATS: [
+  {
+    "_id": "699c37a57256a5dc88fa4215",
+    "name": "Local Panchayat Test",
+    "state": "Test State",
+    "district": "Test District",
+    "panchayatName": "Test Panchayat"
+  },
+  {
+    "_id": "69c56e3b6595a121cb1d9b1a",
+    "name": "KapurthalaLocalPanchayat",
+    "state": "Punjab",
+    "district": "Kapurthala"
+  },
+  {
+    "_id": "69c5768637434d85bad4f36a",
+    "name": "KapurthalaLocalPanchayat",
+    "state": "Punjab",
+    "district": "Kapurthala"
+  }
+]
+CITIZENS: [
+  {
+    "_id": "699af7220d03ef5e625f58fc",
+    "name": "Shubham Kumar Rai",
+    "accountStatus": "PROFILE_INCOMPLETE"
+  },
+  {
+    "_id": "699b5d33e21e4e333bc49812",
+    "name": "Mohd Suhail",
+    "accountStatus": "ACTIVE",
+    "district": "Sitapur",
+    "state": "Uttar Pradesh"
+  },
+  {
+    "_id": "699c5604575074c6a1281b24",
+    "name": "Shaka Laka",
+    "accountStatus": "MANUAL_REVIEW",
+    "district": "Shaka",
+    "state": "Shaka Pradesh"
+  },
+  {
+    "_id": "69c56ae96595a121cb1d9a75",
+    "name": "vihan",
+    "accountStatus": "ACTIVE",
+    "district": "kapurthala",
+    "state": "Punjab"
+  },
+  {
+    "_id": "69c5815682e582cba10d35de",
+    "name": "shubh",
+    "accountStatus": "ACTIVE",
+    "district": "kapurthala",
+    "state": "Punjab"
+  }
+]
+PLANTATIONS: [
+  {
+    "_id": "699c180d7103c32dd6d7aa4e",
+    "status": "TOKEN_MINTED",
+    "district": "Test District",
+    "panchayatName": "Test Panchayat",
+    "state": "Test State"
+  },
+  {
+    "_id": "699c5ea2575074c6a1281bdd",
+    "status": "BLOCKCHAIN_PENDING",
+    "district": "Test District",
+    "panchayatName": "Test Panchayat",
+    "state": "Test State"
+  },
+  {
+    "_id": "69ab21c4c83caa96476c10ac",
+    "status": "BLOCKCHAIN_PENDING",
+    "district": "Test District",
+    "panchayatName": "Test Panchayat",
+    "state": "Test State"
+  },
+  {
+    "_id": "69ab257fc5898d4a302a211c",
+    "status": "BLOCKCHAIN_PENDING",
+    "district": "Test District",
+    "panchayatName": "Test Panchayat",
+    "state": "Test State"
+  },
+  {
+    "_id": "69c5842f5f1ea5c8300432a3",
+    "state": "Punjab",
+    "district": "kapurthala",
+    "panchayatName": "kapurthalalocalpanchayat",
+    "status": "BLOCKCHAIN_PENDING"
+  },
+  {
+    "_id": "69c8032025f3e985ceb76a9c",
+    "state": "Punjab",
+    "district": "kapurthala",
+    "panchayatName": "kapurthalalocalpanchayat",
+    "status": "PENDING_PANCHAYAT"
+  },
+  {
+    "_id": "69c8058d67f724e5348fc957",
+    "state": "Punjab",
+    "district": "kapurthala",
+    "panchayatName": "kapurthalalocalpanchayat",
+    "status": "PENDING_PANCHAYAT"
+  }
+]

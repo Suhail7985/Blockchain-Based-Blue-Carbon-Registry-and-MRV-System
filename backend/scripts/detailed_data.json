@@ -1,0 +1,81 @@
+PANCHAYAT FULL: {
+  "_id": "69c56e3b6595a121cb1d9b1a",
+  "name": "KapurthalaLocalPanchayat",
+  "email": "kabpurthalalocalpanchayat@test.gov.in",
+  "role": "panchayat",
+  "accountStatus": "SUSPENDED",
+  "panchayatId": "PANCH-KAPUR-EIC0S9",
+  "state": "Punjab",
+  "district": "Kapurthala",
+  "declarationAccepted": false,
+  "statusTimeline": [
+    {
+      "step": "Email Verified",
+      "completed": true,
+      "completedAt": "2026-03-26T17:34:51.849Z"
+    },
+    {
+      "step": "Identity Verified",
+      "completed": true,
+      "completedAt": "2026-03-26T17:34:51.849Z"
+    },
+    {
+      "step": "Land Verified",
+      "completed": true,
+      "completedAt": "2026-03-26T17:34:51.849Z"
+    },
+    {
+      "step": "Account Activated",
+      "completed": true,
+      "completedAt": "2026-03-26T17:34:51.849Z"
+    }
+  ],
+  "isEmailVerified": true,
+  "isVerified": true,
+  "createdAt": "2026-03-26T17:34:51.850Z",
+  "updatedAt": "2026-03-26T18:09:48.430Z",
+  "__v": 0
+}
+PLANTATION SAMPLE: {
+  "_id": "69c5842f5f1ea5c8300432a3",
+  "plantationId": "BCR-PLT-MN7UIC5F-R7EHBP",
+  "userId": "69c5815682e582cba10d35de",
+  "landId": "69c583675f1ea5c83004325b",
+  "speciesName": "Avicennia marina",
+  "treeCount": 100,
+  "areaHectares": 10,
+  "plantationDate": "2026-03-26T00:00:00.000Z",
+  "gpsCoordinates": {
+    "lat": 31.251007,
+    "lng": 75.700518
+  },
+  "latitude": 31.251007,
+  "longitude": 75.700518,
+  "state": "Punjab",
+  "district": "kapurthala",
+  "panchayatName": "kapurthalalocalpanchayat",
+  "imagePaths": [
+    "924c229462aac64171f1d49ba247dd52.png"
+  ],
+  "declarationAccepted": true,
+  "status": "PENDING_PANCHAYAT",
+  "submissionTimestamp": "2026-03-26T19:08:31.108Z",
+  "auditLog": [
+    {
+      "action": "submitted",
+      "userId": "69c5815682e582cba10d35de",
+      "timestamp": "2026-03-26T19:08:31.108Z"
+    },
+    {
+      "action": "panchayat_approved_final",
+      "by": "69c5768637434d85bad4f36a",
+      "timestamp": "2026-03-26T19:11:26.957Z",
+      "notes": "approve"
+    }
+  ],
+  "rejectionHistory": [],
+  "healthChecks": [],
+  "createdAt": "2026-03-26T19:08:31.122Z",
+  "updatedAt": "2026-03-28T16:55:52.763Z",
+  "__v": 1
+}

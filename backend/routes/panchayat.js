@@ -10,6 +10,7 @@ import { PLANTATION_STATUS } from '../constants/plantationStatus.js';
 import { ACCOUNT_STATUS } from '../constants/accountStatus.js';
 import { auditLog } from '../utils/auditLog.js';
 import { analyzePlantationsRisk } from '../utils/fraud.js';
+import { finalizePlantationApproval } from '../utils/verification.js';
 
 const router = express.Router();
 
@@ -21,18 +22,34 @@ router.get('/plantations', async (req, res) => {
   try {
     const panchayatUser = await User.findById(req.user.id).select('district state panchayatName').lean();
     const status = req.query.status;
-    
+
     // Strict area filtering based on logged-in Panchayat officer's jurisdiction
     const query = { status: status || PLANTATION_STATUS.PENDING_PANCHAYAT };
     
-    if (panchayatUser?.state) query.state = panchayatUser.state.trim();
-    if (panchayatUser?.district) query.district = panchayatUser.district.trim();
-    if (panchayatUser?.panchayatName) query.panchayatName = panchayatUser.panchayatName.trim();
+    console.log('--- DEBUG: Panchayat Fetch ---');
+    console.log('Panchayat User ID:', req.user.id);
+    console.log('Panchayat Profile:', JSON.stringify(panchayatUser));
+
+    if (panchayatUser?.state) {
+        query.state = new RegExp(`^${panchayatUser.state.trim()}$`, 'i');
+    }
+    if (panchayatUser?.district) {
+        query.district = new RegExp(`^${panchayatUser.district.trim()}$`, 'i');
+    }
+    // If the panchayat officer has a specific name/ID, use it, but don't block if they don't
+    if (panchayatUser?.panchayatName) {
+        query.panchayatName = new RegExp(`^${panchayatUser.panchayatName.trim()}$`, 'i');
+    }
+
+    console.log('Generated Query:', JSON.stringify(query));
 
     const plantations = await Plantation.find(query)
       .sort({ submissionTimestamp: -1 })
       .populate('userId', 'name email phone') // Populate owner info
       .lean();
+    
+    console.log('Found Count:', plantations.length);
+    console.log('----------------------------');
 
     const inJurisdiction = plantations; // DB already filtered it
 
@@ -58,19 +75,41 @@ router.patch('/plantations/:id/approve', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Plantation is not pending Panchayat approval.' });
     }
 
+    // Determine if it's eligible for autonomous approval
+    const riskAnalysis = analyzePlantationsRisk([plantation]);
+    const isLowRisk = riskAnalysis[0]?.riskScore === 'LOW';
+
+    if (isLowRisk) {
+      // Autonomous Approval (Bypass NCCR -> Calculate Carbon -> Tokenize)
+      const remarks = req.body.remarks || 'Autonomously approved by Panchayat (Low Risk)';
+      const updated = await finalizePlantationApproval(plantation._id, req.user.id, 'panchayat', remarks);
+
+      auditLog('PANCHAYAT_APPROVE_FINAL', req.user.id, 'plantation_verified_and_minted', {
+        plantationId: updated.plantationId,
+        co2eq: updated.carbonCalculation?.co2eq,
+      });
+
+      return res.json({
+        success: true,
+        message: 'Low risk plantation autonomously approved. Tokens minted successfully.',
+        plantation: updated.toObject(),
+      });
+    }
+
+    // High risk: Escalate to NCCR
     const previousStatus = plantation.status;
     plantation.status = PLANTATION_STATUS.PENDING_NCCR;
     plantation.panchayatVerification = {
       panchayatId: req.user.id,
       decision: 'approved',
       timestamp: new Date(),
-      remarks: req.body.remarks || '',
+      remarks: req.body.remarks || 'Approved by Panchayat, escalating to NCCR',
     };
     plantation.auditLog = plantation.auditLog || [];
     plantation.auditLog.push({ action: 'panchayat_approved', by: req.user.id, timestamp: new Date(), remarks: req.body.remarks });
     await plantation.save();
 
-    auditLog('PANCHAYAT_APPROVE', req.user.id, 'plantation_approved', {
+    auditLog('PANCHAYAT_APPROVE', req.user.id, 'plantation_approved_escalated', {
       plantationId: plantation.plantationId,
       plantationDbId: plantation._id,
     });
@@ -86,7 +125,7 @@ router.patch('/plantations/:id/approve', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Plantation approved. Sent to NCCR for final verification.',
+      message: 'Plantation flagged. Approved locally and escalated to NCCR for final verification.',
       plantation: plantation.toObject(),
     });
   } catch (e) {
