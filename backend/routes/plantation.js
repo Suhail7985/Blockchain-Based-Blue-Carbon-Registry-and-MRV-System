@@ -73,7 +73,7 @@ router.post('/lands', protect, requireActive, uploadLand, async (req, res) => {
       userId: req.user.id,
       areaHectares: parseFloat(areaHectares),
       status: LAND_STATUS.VERIFIED, // Active users can add verified land immediately
-      documentPath: req.file.filename,
+      documentPath: req.file.path,
       landReference: landReference || 'Additional Land',
       verifiedAt: new Date(),
     });
@@ -157,7 +157,7 @@ router.post(
         });
       }
 
-      const imagePaths = (req.files || []).map((f) => f.filename);
+      const imagePaths = (req.files || []).map((f) => f.path);
 
       const plantationId = generatePlantationId();
       const plantation = await Plantation.create({
@@ -243,7 +243,7 @@ router.patch(
         plantation.areaHectares = areaNum;
       }
 
-      const newImagePaths = (req.files || []).map((f) => f.filename);
+      const newImagePaths = (req.files || []).map((f) => f.path);
       if (newImagePaths.length > 0) {
         plantation.imagePaths = [...plantation.imagePaths, ...newImagePaths];
       }

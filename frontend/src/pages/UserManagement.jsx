@@ -27,7 +27,7 @@ export default function UserManagement() {
       name: 'Raj Kumar',
       email: 'raj@panchayat.gov',
       role: 'panchayat',
-      organization: 'Mumbai Coastal Panchayat',
+      organization: 'Amoy Coastal Panchayat',
       status: 'pending',
       plantations: 0,
       verified: 0,

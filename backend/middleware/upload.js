@@ -1,41 +1,64 @@
-/**
- * File upload middleware for Aadhaar and Land documents
- * Restricts: PDF, JPG, PNG only. Max 5MB.
- * CarbonSetu - MoES / NCCR
- */
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import config from '../config/config.js';
 
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+const UPLOAD_DIR = path.join(process.cwd(), config.uploads.path);
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_SIZE = config.uploads.maxSize;
 
+// 1. Setup Local Storage (Fallback for Dev)
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
-if (!fs.existsSync(path.join(UPLOAD_DIR, 'aadhaar'))) {
-  fs.mkdirSync(path.join(UPLOAD_DIR, 'aadhaar'), { recursive: true });
-}
-if (!fs.existsSync(path.join(UPLOAD_DIR, 'land'))) {
-  fs.mkdirSync(path.join(UPLOAD_DIR, 'land'), { recursive: true });
-}
-if (!fs.existsSync(path.join(UPLOAD_DIR, 'plantation'))) {
-  fs.mkdirSync(path.join(UPLOAD_DIR, 'plantation'), { recursive: true });
-}
+const localSubdirs = ['aadhaar', 'land', 'plantation'];
+localSubdirs.forEach(s => {
+  const p = path.join(UPLOAD_DIR, s);
+  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+});
 
-const createStorage = (subdir) =>
+const createLocalStorage = (subdir) =>
   multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, path.join(UPLOAD_DIR, subdir));
-    },
+    destination: (req, file, cb) => cb(null, path.join(UPLOAD_DIR, subdir)),
     filename: (req, file, cb) => {
       const hash = crypto.randomBytes(16).toString('hex');
       const ext = path.extname(file.originalname) || (file.mimetype === 'application/pdf' ? '.pdf' : '.jpg');
       cb(null, `${hash}${ext}`);
     },
   });
+
+// 2. Setup Cloudinary Storage (For Production)
+let storageAadhaar, storageLand, storagePlantation;
+
+if (config.uploads.useCloudinary) {
+  cloudinary.config({
+    cloud_name: config.uploads.cloudinary.cloudName,
+    api_key: config.uploads.cloudinary.apiKey,
+    api_secret: config.uploads.cloudinary.apiSecret,
+  });
+
+  const generateCloudinaryStorage = (folderName) => new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: `blue-carbon-registry/${folderName}`,
+      allowed_formats: ['pdf', 'jpg', 'jpeg', 'png'],
+      // Cloudinary handles extension automatically
+      public_id: (req, file) => crypto.randomBytes(16).toString('hex'),
+      resource_type: 'auto', // Important for PDFs
+    },
+  });
+
+  storageAadhaar = generateCloudinaryStorage('aadhaar');
+  storageLand = generateCloudinaryStorage('land');
+  storagePlantation = generateCloudinaryStorage('plantation');
+} else {
+  storageAadhaar = createLocalStorage('aadhaar');
+  storageLand = createLocalStorage('land');
+  storagePlantation = createLocalStorage('plantation');
+}
 
 const fileFilter = (req, file, cb) => {
   if (!ALLOWED_TYPES.includes(file.mimetype)) {
@@ -45,13 +68,13 @@ const fileFilter = (req, file, cb) => {
 };
 
 export const uploadAadhaar = multer({
-  storage: createStorage('aadhaar'),
+  storage: storageAadhaar,
   limits: { fileSize: MAX_SIZE },
   fileFilter,
 }).single('aadhaar');
 
 export const uploadLand = multer({
-  storage: createStorage('land'),
+  storage: storageLand,
   limits: { fileSize: MAX_SIZE },
   fileFilter,
 }).single('landDocument');
@@ -65,7 +88,7 @@ const plantationFileFilter = (req, file, cb) => {
 };
 
 export const uploadPlantationImages = multer({
-  storage: createStorage('plantation'),
+  storage: storagePlantation,
   limits: { fileSize: MAX_SIZE },
   fileFilter: plantationFileFilter,
 }).array('plantationImages', 5);

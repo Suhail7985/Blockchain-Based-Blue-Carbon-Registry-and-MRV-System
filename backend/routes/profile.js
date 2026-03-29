@@ -159,7 +159,7 @@ router.put(
         });
       }
 
-      const filePath = path.join(req.file.destination, req.file.filename);
+      const filePath = req.file.path;
 
       let verification;
       try {
@@ -184,7 +184,7 @@ router.put(
         user.ownershipType = ownershipType ?? user.ownershipType;
         user.declarationAccepted = true;
         user.declarationAcceptedAt = new Date();
-        user.aadhaarDocumentPath = req.file.filename;
+        user.aadhaarDocumentPath = req.file.path;
         user.aadhaarUploadedAt = new Date();
         user.aadhaarNameMatch = null;
         user.aadhaarDobMatch = null;
@@ -223,7 +223,7 @@ router.put(
       user.ownershipType = ownershipType ?? user.ownershipType;
       user.declarationAccepted = true;
       user.declarationAcceptedAt = new Date();
-      user.aadhaarDocumentPath = req.file.filename;
+      user.aadhaarDocumentPath = req.file.path;
       user.aadhaarUploadedAt = new Date();
       user.aadhaarNameMatch = verification.nameMatch;
       user.aadhaarDobMatch = verification.dobMatch;
@@ -311,7 +311,7 @@ router.put(
         });
       }
 
-      user.landDocumentPath = req.file.filename;
+      user.landDocumentPath = req.file.path;
       user.landDocumentUploadedAt = new Date();
       user.accountStatus = ACCOUNT_STATUS.PENDING_VERIFICATION;
       if (req.body.landAreaHectares != null) {

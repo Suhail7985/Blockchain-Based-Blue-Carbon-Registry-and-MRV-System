@@ -18,22 +18,28 @@ const config = {
     nccrPrivateKey: process.env.NCCR_WALLET_PRIVATE_KEY || '',
     explorerUrl: 'https://amoy.polygonscan.com',
     contracts: {
-      bccToken: process.env.BCC_TOKEN_ADDRESS || '',
-      registry: process.env.REGISTRY_CONTRACT_ADDRESS || '',
+      bccToken: process.env.CARBON_CREDIT_TOKEN_ADDRESS || '',
+      registry: process.env.PLANTATION_REGISTRY_ADDRESS || '',
     }
   },
 
   email: {
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-    from: process.env.FROM_EMAIL || 'no-reply@bluecarbon.registry',
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+    from: process.env.EMAIL_FROM || 'no-reply@bluecarbon.registry',
   },
 
   uploads: {
     path: 'uploads',
     maxSize: 5 * 1024 * 1024, // 5MB
+    useCloudinary: process.env.USE_CLOUDINARY === 'true',
+    cloudinary: {
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      apiSecret: process.env.CLOUDINARY_API_SECRET,
+    }
   }
 };
 

@@ -346,9 +346,28 @@ const extractFromText = (text, userName = '') => {
 
 // ─── File text extraction (PDF / Image) ──────────────────────────────────────
 
+import axios from 'axios';
+
 const extractTextFromFile = async (filePath) => {
-  const ext = path.extname(filePath).toLowerCase();
-  const buffer = fs.readFileSync(filePath);
+  const ext = path.extname(filePath.split('?')[0]).toLowerCase(); // Split ? for Cloudinary URLs
+  let buffer;
+
+  if (filePath.startsWith('http')) {
+    // Remote file (Cloudinary)
+    try {
+      const response = await axios.get(filePath, { responseType: 'arraybuffer' });
+      buffer = Buffer.from(response.data);
+    } catch (err) {
+      if (IS_DEV) console.error('[Aadhaar] Failed to download remote file:', err.message);
+      throw new Error('Failed to access the uploaded document for verification.');
+    }
+  } else {
+    // Local file
+    if (!fs.existsSync(filePath)) {
+      throw new Error('File not found for verification.');
+    }
+    buffer = fs.readFileSync(filePath);
+  }
 
   if (ext === '.pdf') {
     const pdfParse = (await import('pdf-parse')).default;
@@ -357,7 +376,7 @@ const extractTextFromFile = async (filePath) => {
     return text || '';
   }
 
-  if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+  if (['.jpg', '.jpeg', '.png'].includes(ext) || filePath.includes('image/upload')) {
     try {
       const Tesseract = (await import('tesseract.js')).default;
       const { data } = await Tesseract.recognize(buffer, 'eng');
