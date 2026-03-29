@@ -4,7 +4,12 @@ import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
-const atlasUri = 'mongodb+srv://mohd12221184:Q6xDLB59sIBl25aV@cluster0.rcpg0eg.mongodb.net/blue_carbon_registry?retryWrites=true&w=majority&appName=Cluster0';
+const atlasUri = process.env.MONGODB_URI;
+
+if (!atlasUri) {
+  console.error('❌ Error: MONGODB_URI not found in .env file');
+  process.exit(1);
+}
 
 async function testConnection() {
   console.log('⏳ Attempting to connect to MongoDB Atlas...');
