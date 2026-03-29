@@ -1,4 +1,12 @@
 {
+  "name": "blue-carbon-registry-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix frontend",
+    "install-frontend": "npm install --prefix frontend",
+    "install-backend": "npm install --prefix backend"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^5.6.1"
   }
