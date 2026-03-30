@@ -10,6 +10,7 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
   withCredentials: true, // Important for cookies
   timeout: 10000,
@@ -42,8 +43,11 @@ api.interceptors.response.use(
       // Unauthorized - clear auth data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // Redirect to login if not already there
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+      // Redirect to login only if not on a public page
+      const publicPaths = ['/', '/login', '/signup', '/verify-otp', '/complete-registration', '/forgot-password', '/transparency'];
+      const isPublicPath = publicPaths.includes(window.location.pathname) || window.location.pathname.startsWith('/reset-password');
+      
+      if (!isPublicPath) {
         window.location.href = '/login';
       }
     }

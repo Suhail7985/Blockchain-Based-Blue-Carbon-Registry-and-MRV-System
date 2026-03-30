@@ -30,7 +30,8 @@ const PORT = config.port;
 const allowedOrigins = [
   'https://carbonsetu.vercel.app',
   'https://carbonsetu-indol.vercel.app',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://peggy-prosubscription-marian.ngrok-free.dev'
 ];
 
 app.use((req, res, next) => {
