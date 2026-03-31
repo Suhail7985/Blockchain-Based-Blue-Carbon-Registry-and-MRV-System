@@ -31,7 +31,7 @@ export function analyzePlantationsRisk(plantations) {
       flags.push('DUPLICATE_GPS');
     }
 
-    if (density != null && density > 1000) {
+    if (density != null && density > 2500) {
       flags.push('HIGH_TREE_DENSITY');
     }
 

@@ -560,9 +560,15 @@ const PanchayatDashboard = () => {
         mode="approve"
         title={plantations.find(p => p._id === actionId)?.risk?.riskScore === 'LOW' ? 'Autonomous Final Approval' : 'Approve & Escalate to NCCR'}
         message={
-          plantations.find(p => p._id === actionId)?.risk?.riskScore === 'LOW' 
-          ? "This is a low-risk case. Your approval will finalize the record and trigger token minting immediately."
-          : "This case has been flagged for investigation. Your approval will move it to NCCR for final national verification."
+          (() => {
+            const p = plantations.find(item => item._id === actionId);
+            if (!p) return "";
+            if (p.risk?.riskScore === 'LOW') {
+              return "This is a low-risk case. Your approval will finalize the record and trigger token minting immediately.";
+            }
+            const flagNames = p.risk?.flags?.map(f => f.replace(/_/g, ' ')).join(', ');
+            return `This case has been flagged for: ${flagNames || 'Security review'}. Your approval will move it to NCCR for final national verification instead of immediate minting.`;
+          })()
         }
         placeholder="Add verification remarks (optional)..."
       />

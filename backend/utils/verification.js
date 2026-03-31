@@ -72,53 +72,85 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
 
   // 2. Blockchain Recording
   if (!plantation.blockchainTxHash) {
-    plantation.status = PLANTATION_STATUS.BLOCKCHAIN_PENDING;
-    await plantation.save();
-
-    const hashPayload = {
-      plantationId: plantation.plantationId,
-      landId: plantation.landId?._id || plantation.landId,
-      treeCount: plantation.treeCount,
-      areaHectares: plantation.areaHectares,
-      speciesName: plantation.speciesName,
-      timestamp: plantation.submissionTimestamp,
-    };
-    plantation.blockchainHash = generatePlantationHash(hashPayload);
-
-    const bcResult = await storePlantationHash(
-      plantation.plantationId,
-      userWallet,
-      plantation.blockchainHash
-    );
-
-    if (bcResult?.success) {
-      plantation.blockchainTxHash = bcResult.transactionHash;
-      plantation.blockNumber = bcResult.blockNumber;
-      plantation.blockchainGasUsed = bcResult.gasUsed;
-      plantation.blockchainTimestamp = bcResult.timestamp;
-      plantation.status = PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED;
+    try {
+      plantation.status = PLANTATION_STATUS.BLOCKCHAIN_PENDING;
       await plantation.save();
+
+      const hashPayload = {
+        plantationId: plantation.plantationId,
+        landId: plantation.landId?._id || plantation.landId,
+        treeCount: plantation.treeCount,
+        areaHectares: plantation.areaHectares,
+        speciesName: plantation.speciesName,
+        timestamp: plantation.submissionTimestamp,
+      };
+      plantation.blockchainHash = generatePlantationHash(hashPayload);
+
+      const bcResult = await storePlantationHash(
+        plantation.plantationId,
+        userWallet,
+        plantation.blockchainHash
+      );
+
+      if (bcResult?.success) {
+        plantation.blockchainTxHash = bcResult.transactionHash;
+        plantation.blockNumber = bcResult.blockNumber;
+        plantation.blockchainGasUsed = bcResult.gasUsed;
+        plantation.blockchainTimestamp = bcResult.timestamp;
+        plantation.status = PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED;
+        await plantation.save();
+      } else {
+        // Revert to VERIFIED if blockchain storage failed so it can be retried
+        plantation.status = PLANTATION_STATUS.VERIFIED;
+        await plantation.save();
+        console.error(`Blockchain storage failed for ${plantation.plantationId}: ${bcResult?.error}`);
+        
+        await AuditLog.create({
+          plantationId: plantation._id,
+          action: 'blockchain_storage_failed',
+          performedBy: officerId,
+          role,
+          details: { error: bcResult?.error },
+        });
+      }
+    } catch (bcError) {
+      plantation.status = PLANTATION_STATUS.VERIFIED;
+      await plantation.save();
+      console.error(`Unexpected blockchain error for ${plantation.plantationId}:`, bcError);
     }
   }
 
   // 3. Token Minting
   if (plantation.status === PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED && !plantation.tokenTxHash) {
-    const mintResult = await mintCarbonToken(userWallet, carbonCalc.tokens, plantation.plantationId);
-    if (mintResult?.success) {
-      plantation.tokenTxHash = mintResult.transactionHash;
-      plantation.status = PLANTATION_STATUS.TOKEN_MINTED;
-      await plantation.save();
-      
-      // Final Audit Log for minting
-      await AuditLog.create({
-        plantationId: plantation._id,
-        action: 'token_minted',
-        performedBy: officerId,
-        role,
-        previousStatus: PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED,
-        newStatus: plantation.status,
-        details: { txHash: mintResult.transactionHash, amount: carbonCalc.tokens },
-      });
+    try {
+      const mintResult = await mintCarbonToken(userWallet, carbonCalc.tokens, plantation.plantationId);
+      if (mintResult?.success) {
+        plantation.tokenTxHash = mintResult.transactionHash;
+        plantation.status = PLANTATION_STATUS.TOKEN_MINTED;
+        await plantation.save();
+        
+        // Final Audit Log for minting
+        await AuditLog.create({
+          plantationId: plantation._id,
+          action: 'token_minted',
+          performedBy: officerId,
+          role,
+          previousStatus: PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED,
+          newStatus: plantation.status,
+          details: { txHash: mintResult.transactionHash, amount: carbonCalc.tokens },
+        });
+      } else {
+        console.error(`Token minting failed for ${plantation.plantationId}: ${mintResult?.error}`);
+        await AuditLog.create({
+          plantationId: plantation._id,
+          action: 'token_minting_failed',
+          performedBy: officerId,
+          role,
+          details: { error: mintResult?.error },
+        });
+      }
+    } catch (mintError) {
+      console.error(`Unexpected minting error for ${plantation.plantationId}:`, mintError);
     }
   }
 

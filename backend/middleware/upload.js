@@ -11,14 +11,16 @@ const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'
 const MAX_SIZE = config.uploads.maxSize;
 
 // 1. Setup Local Storage (Fallback for Dev)
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+if (!config.uploads.useCloudinary) {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+  const localSubdirs = ['aadhaar', 'land', 'plantation'];
+  localSubdirs.forEach(s => {
+    const p = path.join(UPLOAD_DIR, s);
+    if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+  });
 }
-const localSubdirs = ['aadhaar', 'land', 'plantation'];
-localSubdirs.forEach(s => {
-  const p = path.join(UPLOAD_DIR, s);
-  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
-});
 
 const createLocalStorage = (subdir) =>
   multer.diskStorage({

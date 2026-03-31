@@ -37,7 +37,10 @@ const allowedOrigins = [
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('localhost')) {
+  const isVercel = origin && origin.endsWith('.vercel.app');
+  const isLocal = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
+  
+  if (!origin || isVercel || isLocal || allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
   }
   res.setHeader('Access-Control-Allow-Credentials', 'true');
