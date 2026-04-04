@@ -39,3 +39,4 @@ data/
 
 # Uploaded documents (Aadhaar, Land)
 uploads/
+.vercel

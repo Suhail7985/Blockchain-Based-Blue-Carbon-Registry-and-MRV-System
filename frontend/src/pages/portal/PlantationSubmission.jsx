@@ -66,17 +66,25 @@ const PlantationSubmission = () => {
   const [loadingSpecies, setLoadingSpecies] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    landId: '',
-    speciesName: '',
-    treeCount: '',
-    areaHectares: '',
-    plantationDate: '',
-    state: user?.state || '',
-    district: user?.district || '',
-    panchayatName: user?.panchayatName || '',
     lat: '',
     lng: '',
     declarationAccepted: false,
+    // Role-Based Detailed Data (NGO/Citizen)
+    phaseNumber: 'Phase 1',
+    species1Count: '',
+    species2Name: '',
+    species2Count: '',
+    species3Name: '',
+    species3Count: '',
+    plantingMethod: 'Nursery_transplant',
+    seedSource: '',
+    nurseryPartner: '',
+    labourCost: '',
+    materialCost: '',
+    supervisionCost: '',
+    communityInvolvement: 'Medium',
+    technicalPartner: '',
+    trainingProvided: false,
   });
   const [images, setImages] = useState([]);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -176,8 +184,31 @@ const PlantationSubmission = () => {
     formData.append('district', form.district);
     formData.append('panchayatName', form.panchayatName);
     formData.append('declarationAccepted', 'true');
-    if (form.lat) formData.append('lat', form.lat);
-    if (form.lng) formData.append('lng', form.lng);
+    formData.append('lat', form.lat);
+    formData.append('lng', form.lng);
+    formData.append('phaseNumber', form.phaseNumber);
+    formData.append('plantingMethod', form.plantingMethod);
+    formData.append('seedSource', form.seedSource);
+    formData.append('nurseryPartner', form.nurseryPartner);
+    formData.append('labourCost', form.labourCost);
+    formData.append('materialCost', form.materialCost);
+    formData.append('supervisionCost', form.supervisionCost);
+    formData.append('communityInvolvement', form.communityInvolvement);
+    formData.append('technicalPartner', form.technicalPartner);
+    formData.append('trainingProvided', form.trainingProvided);
+
+    // Handle species details array
+    const speciesDetails = [
+      { speciesName: form.speciesName, count: parseInt(form.treeCount) || 0 }
+    ];
+    if (form.species2Name && form.species2Count) {
+      speciesDetails.push({ speciesName: form.species2Name, count: parseInt(form.species2Count) || 0 });
+    }
+    if (form.species3Name && form.species3Count) {
+      speciesDetails.push({ speciesName: form.species3Name, count: parseInt(form.species3Count) || 0 });
+    }
+    formData.append('speciesDetails', JSON.stringify(speciesDetails));
+
     images.forEach((file) => formData.append('plantationImages', file));
 
     try {
@@ -447,8 +478,129 @@ const PlantationSubmission = () => {
             )}
           </div>
 
+          {/* Advanced Plantation Details (SIH/MoES Requirement) */}
+          <div className="pt-4 border-t border-gray-100">
+            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="p-1 bg-blue-100 text-blue-600 rounded">📊</span>
+              Advanced Plantation Details (SIH Requirement)
+            </h3>
+            
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Phase Number</label>
+                <select
+                  name="phaseNumber"
+                  value={form.phaseNumber}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
+                >
+                  <option value="Phase_1">Phase 1</option>
+                  <option value="Phase_2">Phase 2</option>
+                  <option value="Phase_3">Phase 3</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Planting Method</label>
+                <select
+                  name="plantingMethod"
+                  value={form.plantingMethod}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
+                >
+                  <option value="Nursery_transplant">Nursery Transplant</option>
+                  <option value="Direct_seeding">Direct Seeding</option>
+                  <option value="Transplantation">Transplantation</option>
+                  <option value="Mixed_method">Mixed Method</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Seed Source</label>
+                <input
+                  type="text"
+                  name="seedSource"
+                  value={form.seedSource}
+                  onChange={handleChange}
+                  placeholder="e.g. Gujarat Forest Research"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Nursery Partner</label>
+                <input
+                  type="text"
+                  name="nurseryPartner"
+                  value={form.nurseryPartner}
+                  onChange={handleChange}
+                  placeholder="e.g. Local Community Nursery"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-gray-500 mb-2">Estimated Costs (INR)</label>
+              <div className="grid grid-cols-3 gap-3">
+                <input
+                  type="number"
+                  name="labourCost"
+                  value={form.labourCost}
+                  onChange={handleChange}
+                  placeholder="Labour"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
+                />
+                <input
+                  type="number"
+                  name="materialCost"
+                  value={form.materialCost}
+                  onChange={handleChange}
+                  placeholder="Material"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
+                />
+                <input
+                  type="number"
+                  name="supervisionCost"
+                  value={form.supervisionCost}
+                  onChange={handleChange}
+                  placeholder="Supervision"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Community Involvement</label>
+                <select
+                  name="communityInvolvement"
+                  value={form.communityInvolvement}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Very_High">Very High</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-3 h-full pt-4">
+                <input
+                  type="checkbox"
+                  name="trainingProvided"
+                  id="trainingProvided"
+                  checked={form.trainingProvided}
+                  onChange={handleChange}
+                  className="rounded border-gray-300 text-bc-green-600"
+                />
+                <label htmlFor="trainingProvided" className="text-xs font-medium text-gray-700">Training Provided to Community?</label>
+              </div>
+            </div>
+          </div>
+
           <div>
-            <label className="flex items-start gap-3 cursor-pointer">
+            <label className="flex items-start gap-3 cursor-pointer mt-2">
               <input
                 type="checkbox"
                 name="declarationAccepted"

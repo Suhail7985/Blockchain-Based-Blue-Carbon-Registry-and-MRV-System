@@ -5,6 +5,7 @@ import { FaUser, FaLock, FaEye, FaEyeSlash, FaCheckCircle } from 'react-icons/fa
 
 const CompleteRegistration = () => {
   const [name, setName] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -62,7 +63,7 @@ const CompleteRegistration = () => {
     setLoading(true);
 
     try {
-      const result = await completeRegistration(email, name.trim(), password);
+      const result = await completeRegistration(email, name.trim(), password, walletAddress.trim());
       if (result.success) {
         sessionStorage.removeItem('signupEmail');
         sessionStorage.removeItem('otpExpiresAt');
@@ -136,6 +137,31 @@ const CompleteRegistration = () => {
                 disabled={loading}
               />
             </div>
+          </div>
+
+          {/* Wallet Address Field (Optional) */}
+          <div>
+            <label htmlFor="walletAddress" className="block text-sm font-semibold text-gray-700 mb-2">
+              Carbon Wallet Address (Polygon) <span className="text-gray-400 font-normal">(Optional)</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaLink className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                id="walletAddress"
+                name="walletAddress"
+                type="text"
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+                className="block w-full pl-10 pr-3 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gov-blue-500 focus:border-gov-blue-500 disabled:opacity-50 font-mono text-sm"
+                placeholder="0x..."
+                disabled={loading}
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-gray-500 italic">
+              Where you will receive your carbon credit tokens. Can be added later.
+            </p>
           </div>
 
           {/* Password Field */}

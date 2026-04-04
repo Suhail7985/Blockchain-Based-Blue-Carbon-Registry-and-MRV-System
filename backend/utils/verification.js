@@ -28,7 +28,8 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
 
   // 1. Carbon Calculation (Scientific)
   // We'll try to use the scientific registry first, then fallback to global settings
-  const carbonCalc = await calculateCarbon(plantation.treeCount, plantation.speciesName);
+  // Passing mrvData to prioritize granular biomass/SOC measurements (SIH Requirement)
+  const carbonCalc = await calculateCarbon(plantation.treeCount, plantation.speciesName, plantation.mrvData);
   plantation.carbonCalculation = carbonCalc;
   plantation.status = PLANTATION_STATUS.VERIFIED;
 
@@ -76,6 +77,10 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
       plantation.status = PLANTATION_STATUS.BLOCKCHAIN_PENDING;
       await plantation.save();
 
+      if (!userWallet) {
+        throw new Error('User wallet address is missing. Please ask the user to add a wallet to their profile.');
+      }
+
       const hashPayload = {
         plantationId: plantation.plantationId,
         landId: plantation.landId?._id || plantation.landId,
@@ -110,19 +115,33 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
           action: 'blockchain_storage_failed',
           performedBy: officerId,
           role,
-          details: { error: bcResult?.error },
+          details: { error: bcResult?.error || 'Unknown blockchain error' },
         });
       }
     } catch (bcError) {
       plantation.status = PLANTATION_STATUS.VERIFIED;
       await plantation.save();
-      console.error(`Unexpected blockchain error for ${plantation.plantationId}:`, bcError);
+      console.error(`Unexpected blockchain error for ${plantation.plantationId}:`, bcError.message);
+      
+      await AuditLog.create({
+        plantationId: plantation._id,
+        action: 'blockchain_verification_error',
+        performedBy: officerId,
+        role,
+        details: { error: bcError.message },
+      });
     }
   }
 
   // 3. Token Minting
   if (plantation.status === PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED && !plantation.tokenTxHash) {
     try {
+      if (!userWallet) {
+        // This should have been caught above, but safety first
+        console.error('Wallet missing during minting step');
+        return plantation;
+      }
+      
       const mintResult = await mintCarbonToken(userWallet, carbonCalc.tokens, plantation.plantationId);
       if (mintResult?.success) {
         plantation.tokenTxHash = mintResult.transactionHash;
@@ -146,7 +165,7 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
           action: 'token_minting_failed',
           performedBy: officerId,
           role,
-          details: { error: mintResult?.error },
+          details: { error: mintResult?.error || 'Unknown minting error' },
         });
       }
     } catch (mintError) {

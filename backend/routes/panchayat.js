@@ -71,8 +71,9 @@ router.patch('/plantations/:id/approve', async (req, res) => {
   try {
     const plantation = await Plantation.findById(req.params.id);
     if (!plantation) return res.status(404).json({ success: false, message: 'Plantation not found' });
-    if (plantation.status !== PLANTATION_STATUS.PENDING_PANCHAYAT) {
-      return res.status(400).json({ success: false, message: 'Plantation is not pending Panchayat approval.' });
+    const allowedStatuses = [PLANTATION_STATUS.PENDING_PANCHAYAT, PLANTATION_STATUS.VERIFIED, PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED];
+    if (!allowedStatuses.includes(plantation.status)) {
+      return res.status(400).json({ success: false, message: "Plantation is not in a registrable state." });
     }
 
     // Determine if it's eligible for autonomous approval
@@ -172,6 +173,63 @@ router.patch('/plantations/:id/reject', async (req, res) => {
     res.json({
       success: true,
       message: 'Plantation rejected.',
+      plantation: plantation.toObject(),
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// PATCH /api/panchayat/plantations/:id/data - update survival & M-GNREGA data
+router.patch('/plantations/:id/data', async (req, res) => {
+  try {
+    const panchayatUser = await User.findById(req.user.id).select('district state').lean();
+    const plantation = await Plantation.findById(req.params.id);
+
+    if (!plantation) return res.status(404).json({ success: false, message: 'Plantation not found' });
+
+    // Jurisdiction check
+    if (
+      plantation.state.toLowerCase() !== panchayatUser.state.toLowerCase() ||
+      plantation.district.toLowerCase() !== panchayatUser.district.toLowerCase()
+    ) {
+      return res.status(403).json({ success: false, message: 'Plantation is outside your jurisdiction.' });
+    }
+
+    const {
+      personDays,
+      wageRate,
+      survivalRate,
+      mortalityCauses,
+      nextPlantationDate,
+      certificationBody,
+      localTrainingProvided,
+    } = req.body;
+
+    plantation.panchayatData = {
+      mgnrega: {
+        personDays: parseFloat(personDays) || 0,
+        wageRate: parseFloat(wageRate) || 0,
+      },
+      survivalRate: parseFloat(survivalRate) || 0,
+      mortalityCauses,
+      nextPlantationDate,
+      certificationBody,
+      localTrainingProvided: localTrainingProvided === 'true' || localTrainingProvided === true,
+    };
+
+    plantation.auditLog = plantation.auditLog || [];
+    plantation.auditLog.push({
+      action: 'panchayat_data_updated',
+      by: req.user.id,
+      timestamp: new Date(),
+    });
+
+    await plantation.save();
+
+    res.json({
+      success: true,
+      message: 'Panchayat data updated successfully.',
       plantation: plantation.toObject(),
     });
   } catch (e) {

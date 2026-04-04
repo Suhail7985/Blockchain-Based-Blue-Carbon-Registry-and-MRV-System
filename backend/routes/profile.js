@@ -16,7 +16,6 @@ import { getTokenBalance, getExplorerAddressUrl } from '../utils/blockchainServi
 
 const router = express.Router();
 
-// Update profile only (no file) - for ACTIVE users
 router.patch(
   '/',
   protect,
@@ -35,7 +34,9 @@ router.patch(
   async (req, res) => {
     try {
       const user = await User.findById(req.user.id).select('-password');
-      if (user.accountStatus !== ACCOUNT_STATUS.ACTIVE) {
+      const allowedProfileStatuses = [ACCOUNT_STATUS.ACTIVE, ACCOUNT_STATUS.PENDING_VERIFICATION, ACCOUNT_STATUS.MANUAL_REVIEW, ACCOUNT_STATUS.IDENTITY_VERIFIED, ACCOUNT_STATUS.VERIFIED_PENDING_LAND];
+      
+      if (!allowedProfileStatuses.includes(user.accountStatus)) {
         return res.status(400).json({
           success: false,
           message: 'Use the main profile form with document upload for verification.',
@@ -96,6 +97,7 @@ router.put(
     body('ngoRegistrationNumber').optional().trim(),
     body('ownershipType').optional().isIn(['private', 'community']),
     body('declarationAccepted').optional().isBoolean(),
+    body('walletAddress').optional().trim().matches(/^0x[a-fA-F0-9]{40}$/).withMessage('Wallet must be a valid Ethereum address (0x + 40 hex)'),
   ],
   async (req, res) => {
     try {
@@ -134,6 +136,7 @@ router.put(
         user.ngoName = ngoName ?? user.ngoName;
         user.ngoRegistrationNumber = ngoRegistrationNumber ?? user.ngoRegistrationNumber;
         user.ownershipType = ownershipType ?? user.ownershipType;
+        if (req.body.walletAddress) user.walletAddress = req.body.walletAddress.trim().toLowerCase();
         await user.save();
         auditLog('PROFILE_UPDATE', req.user.id, 'profile_updated', {});
         return res.json({
@@ -256,6 +259,7 @@ router.put(
       if (!user.referenceId) {
         user.referenceId = await User.generateReferenceId();
       }
+      if (req.body.walletAddress) user.walletAddress = req.body.walletAddress.trim().toLowerCase();
 
       await user.save();
 
@@ -318,6 +322,7 @@ router.put(
         const ha = parseFloat(req.body.landAreaHectares);
         if (!isNaN(ha) && ha >= 0) user.landAreaHectares = ha;
       }
+      if (req.body.walletAddress) user.walletAddress = req.body.walletAddress.trim().toLowerCase();
       user.statusTimeline = [
         { step: 'Email Verified', completed: true, completedAt: user.createdAt },
         { step: 'Identity Verified', completed: true, completedAt: user.identityVerifiedAt || new Date() },

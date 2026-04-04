@@ -121,7 +121,30 @@ router.post(
         return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
       }
 
-      const { landId, speciesName, treeCount, areaHectares, plantationDate, declarationAccepted, state, district, panchayatName } = req.body;
+      const {
+        landId,
+        speciesName,
+        treeCount,
+        areaHectares,
+        plantationDate,
+        declarationAccepted,
+        state,
+        district,
+        panchayatName,
+        // Role-Based Detailed Data (NGO/Citizen)
+        phaseNumber,
+        speciesDetails,
+        plantingMethod,
+        seedSource,
+        nurseryPartner,
+        labourCost,
+        materialCost,
+        supervisionCost,
+        communityInvolvement,
+        technicalPartner,
+        trainingProvided,
+      } = req.body;
+
       const land = await Land.findOne({ _id: landId, userId: req.user.id, status: LAND_STATUS.VERIFIED });
       if (!land) {
         return res.status(400).json({ success: false, message: 'Selected land not found or not verified.' });
@@ -178,6 +201,24 @@ router.post(
         declarationAccepted: declarationAccepted === 'true',
         status: PLANTATION_STATUS.PENDING_PANCHAYAT,
         submissionTimestamp: new Date(),
+        
+        // Detailed Data (NGO/Citizen)
+        plantationDetails: {
+          phaseNumber,
+          speciesDetails: Array.isArray(speciesDetails) ? speciesDetails : [],
+          plantingMethod,
+          seedSource,
+          nurseryPartner,
+          financials: {
+            labourCost: parseFloat(labourCost) || 0,
+            materialCost: parseFloat(materialCost) || 0,
+            supervisionCost: parseFloat(supervisionCost) || 0,
+          },
+          communityInvolvement,
+          technicalPartner,
+          trainingProvided: trainingProvided === 'true' || trainingProvided === true,
+        },
+
         auditLog: [{ action: 'submitted', userId: req.user.id, timestamp: new Date() }],
       });
 

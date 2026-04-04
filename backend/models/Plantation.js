@@ -58,6 +58,85 @@ const healthCheckSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const plantationDetailsSchema = new mongoose.Schema(
+  {
+    phaseNumber: { type: String, trim: true },
+    speciesDetails: [
+      {
+        speciesName: { type: String },
+        count: { type: Number },
+      },
+    ],
+    plantingMethod: { type: String, trim: true },
+    seedSource: { type: String, trim: true },
+    nurseryPartner: { type: String, trim: true },
+    financials: {
+      labourCost: { type: Number, min: 0 },
+      materialCost: { type: Number, min: 0 },
+      supervisionCost: { type: Number, min: 0 },
+    },
+    communityInvolvement: {
+      type: String,
+      enum: ['Low', 'Medium', 'High', 'Very_High'],
+    },
+    technicalPartner: { type: String, trim: true },
+    trainingProvided: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const panchayatDataSchema = new mongoose.Schema(
+  {
+    mgnrega: {
+      personDays: { type: Number, min: 0 },
+      wageRate: { type: Number, min: 0 },
+    },
+    survivalRate: { type: Number, min: 0, max: 100 },
+    mortalityCauses: { type: String, trim: true },
+    nextPlantationDate: { type: Date },
+    certificationBody: { type: String, trim: true },
+    localTrainingProvided: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const mrvDataSchema = new mongoose.Schema(
+  {
+    monitoringSeason: { type: String, trim: true },
+    monitoringMethod: { type: String, trim: true },
+    technologyUsed: { type: String, trim: true },
+    biomass: {
+      aboveGround: { type: Number, min: 0 },
+      belowGround: { type: Number, min: 0 },
+      soilOrganicCarbon0_30: { type: Number, min: 0 },
+      soilOrganicCarbon30_100: { type: Number, min: 0 },
+      deadWood: { type: Number, min: 0 },
+      litter: { type: Number, min: 0 },
+    },
+    auditTrail: {
+      technologyUsed: { type: String },
+      satelliteSource: { type: String },
+      droneSpecs: { type: String },
+      gpsAccuracy: { type: Number },
+      weatherConditions: { type: String },
+      accessibilityRating: { type: String },
+      communityParticipation: { type: Number },
+      dataQualityScore: { type: Number },
+    },
+    verification: {
+      verifierName: { type: String },
+      verifierType: { type: String },
+      verifierCredential: { type: String },
+      reportHash: { type: String },
+      ipfsHash: { type: String },
+      complianceStandard: { type: String },
+      labCertification: { type: String },
+      institutionalApprovalStatus: { type: String },
+    },
+  },
+  { _id: false }
+);
+
 const plantationSchema = new mongoose.Schema(
   {
     plantationId: { type: String, unique: true, required: true },
@@ -81,6 +160,12 @@ const plantationSchema = new mongoose.Schema(
       default: PLANTATION_STATUS.PENDING_PANCHAYAT,
     },
     submissionTimestamp: { type: Date, default: Date.now },
+
+    // Role-Based Detailed Data
+    plantationDetails: { type: plantationDetailsSchema },
+    panchayatData: { type: panchayatDataSchema },
+    mrvData: { type: mrvDataSchema },
+
     panchayatVerification: { type: panchayatVerificationSchema },
     nccrVerification: { type: nccrVerificationSchema },
     carbonCalculation: { type: carbonCalculationSchema },
@@ -100,6 +185,7 @@ const plantationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
 
 plantationSchema.index({ userId: 1, status: 1 });
 plantationSchema.index({ landId: 1, plantationDate: 1 });

@@ -87,6 +87,7 @@ const ProfileKYC = () => {
       fd.append('ngoRegistrationNumber', form.ngoRegistrationNumber);
       fd.append('ownershipType', form.ownershipType);
       fd.append('declarationAccepted', form.declarationAccepted);
+      if (form.walletAddress) fd.append('walletAddress', form.walletAddress);
       if (aadhaarFile) fd.append('aadhaar', aadhaarFile);
 
       const res = await api.put('/profile', fd);
@@ -119,6 +120,7 @@ const ProfileKYC = () => {
       if (form.landAreaHectares !== '' && !isNaN(parseFloat(form.landAreaHectares))) {
         fd.append('landAreaHectares', form.landAreaHectares);
       }
+      if (form.walletAddress) fd.append('walletAddress', form.walletAddress);
       const res = await api.put('/profile/land-document', fd);
       if (res.data.success) {
         setMessage({ type: 'success', text: res.data.message });
@@ -310,23 +312,21 @@ const ProfileKYC = () => {
           </div>
         </section>
 
-        {/* Wallet address - for receiving BCC tokens (ACTIVE users only) */}
-        {user?.accountStatus === ACCOUNT_STATUS.ACTIVE && (
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Wallet Address (Carbon Credits)</h2>
-            <p className="text-sm text-gray-600 mb-3">
-              Add your Polygon-compatible wallet address (e.g. MetaMask) to receive Blue Carbon Credit (BCC) tokens after NCCR approval.
-            </p>
-            <input
-              type="text"
-              name="walletAddress"
-              value={form.walletAddress}
-              onChange={handleChange}
-              placeholder="0x..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-            />
-          </section>
-        )}
+        {/* Wallet address - for receiving BCC tokens */}
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Wallet Address (Carbon Credits)</h2>
+          <p className="text-sm text-gray-600 mb-3">
+            Add your Polygon-compatible wallet address (e.g. MetaMask) to receive Blue Carbon Credit (BCC) tokens after NCCR approval.
+          </p>
+          <input
+            type="text"
+            name="walletAddress"
+            value={form.walletAddress}
+            onChange={handleChange}
+            placeholder="0x..."
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
+          />
+        </section>
 
         {/* Section 2 - Aadhaar Upload */}
         {needsAadhaar && (

@@ -200,7 +200,7 @@ router.post(
         });
       }
 
-      const { email, name, password } = req.body;
+      const { email, name, password, walletAddress } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({ email });
@@ -219,6 +219,7 @@ router.post(
         email,
         name,
         password, // Will be hashed by pre-save hook
+        walletAddress: walletAddress ? walletAddress.trim().toLowerCase() : undefined,
         isEmailVerified: true,
         isVerified: false,
         accountStatus: 'PROFILE_INCOMPLETE',

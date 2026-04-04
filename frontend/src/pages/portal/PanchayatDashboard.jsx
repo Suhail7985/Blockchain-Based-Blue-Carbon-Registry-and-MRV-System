@@ -16,7 +16,8 @@ import toast from 'react-hot-toast';
 import ActionModal from '../../components/portal/ActionModal';
 import EvidenceGallery from '../../components/portal/EvidenceGallery';
 import ReviewModal from '../../components/portal/ReviewModal';
-import { FaMapMarkerAlt, FaImages, FaShieldAlt, FaChartBar, FaTree, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaLandmark } from 'react-icons/fa';
+import PanchayatDataModal from '../../components/portal/PanchayatDataModal';
+import { FaMapMarkerAlt, FaImages, FaShieldAlt, FaChartBar, FaTree, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaLandmark, FaDatabase } from 'react-icons/fa';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -48,6 +49,8 @@ const PanchayatDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryTitle, setGalleryTitle] = useState('');
+  const [selectedPlantation, setSelectedPlantation] = useState(null);
+  const [showPanchayatDataModal, setShowPanchayatDataModal] = useState(false);
 
   // Land specific state
   const [pendingLand, setPendingLand] = useState([]);
@@ -495,6 +498,13 @@ const PanchayatDashboard = () => {
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-2">
                           <button
+                            onClick={() => { setSelectedPlantation(p); setShowPanchayatDataModal(true); }}
+                            className="px-3 py-1.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg shadow-sm transition-all w-full flex items-center justify-center gap-1"
+                          >
+                            <FaDatabase className="w-3 h-3" /> Update Survival
+                          </button>
+
+                          <button
                             onClick={() => { setActionId(p._id); setShowApproveModal(true); }}
                             className={`px-3 py-1.5 text-white text-xs font-bold rounded-lg shadow-sm transition-all w-full flex items-center justify-center gap-1 ${
                               p.risk?.riskScore === 'LOW' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'
@@ -600,6 +610,13 @@ const PanchayatDashboard = () => {
         title="Reject Land Document"
         message="Please provide a clear reason for rejection. The citizen will need to upload a corrected document."
         placeholder="Reason for rejection (mandatory)..."
+      />
+
+      <PanchayatDataModal
+        isOpen={showPanchayatDataModal}
+        onClose={() => { setShowPanchayatDataModal(false); setSelectedPlantation(null); }}
+        plantation={selectedPlantation}
+        onSuccess={() => load()}
       />
     </div>
   );

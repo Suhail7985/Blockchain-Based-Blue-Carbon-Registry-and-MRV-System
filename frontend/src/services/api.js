@@ -65,11 +65,12 @@ export const verifyOTP = async (email, otp) => {
   return response.data;
 };
 
-export const completeRegistration = async (email, name, password) => {
+export const completeRegistration = async (email, name, password, walletAddress) => {
   const response = await api.post('/auth/register', {
     email,
     name,
     password,
+    walletAddress,
   });
   return response.data;
 };

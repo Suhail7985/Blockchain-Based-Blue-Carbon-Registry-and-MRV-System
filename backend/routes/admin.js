@@ -551,4 +551,90 @@ router.patch('/plantations/:id/reject', async (req, res) => {
   }
 });
 
+// PATCH /api/admin/plantations/:id/mrv - update detailed MRV data
+router.patch('/plantations/:id/mrv', async (req, res) => {
+  try {
+    const plantation = await Plantation.findById(req.params.id);
+    if (!plantation) return res.status(404).json({ success: false, message: 'Plantation not found' });
+
+    const {
+      monitoringSeason,
+      monitoringMethod,
+      technologyUsed,
+      aboveGround,
+      belowGround,
+      soilOrganicCarbon0_30,
+      soilOrganicCarbon30_100,
+      deadWood,
+      litter,
+      satelliteSource,
+      droneSpecs,
+      gpsAccuracy,
+      weatherConditions,
+      accessibilityRating,
+      communityParticipation,
+      dataQualityScore,
+      verifierName,
+      verifierType,
+      verifierCredential,
+      reportHash,
+      ipfsHash,
+      complianceStandard,
+      labCertification,
+      institutionalApprovalStatus,
+    } = req.body;
+
+    plantation.mrvData = {
+      monitoringSeason,
+      monitoringMethod,
+      technologyUsed,
+      biomass: {
+        aboveGround: parseFloat(aboveGround) || 0,
+        belowGround: parseFloat(belowGround) || 0,
+        soilOrganicCarbon0_30: parseFloat(soilOrganicCarbon0_30) || 0,
+        soilOrganicCarbon30_100: parseFloat(soilOrganicCarbon30_100) || 0,
+        deadWood: parseFloat(deadWood) || 0,
+        litter: parseFloat(litter) || 0,
+      },
+      auditTrail: {
+        technologyUsed,
+        satelliteSource,
+        droneSpecs,
+        gpsAccuracy: parseFloat(gpsAccuracy) || 0,
+        weatherConditions,
+        accessibilityRating,
+        communityParticipation: parseFloat(communityParticipation) || 0,
+        dataQualityScore: parseFloat(dataQualityScore) || 0,
+      },
+      verification: {
+        verifierName,
+        verifierType,
+        verifierCredential,
+        reportHash,
+        ipfsHash,
+        complianceStandard,
+        labCertification,
+        institutionalApprovalStatus,
+      },
+    };
+
+    plantation.auditLog = plantation.auditLog || [];
+    plantation.auditLog.push({
+      action: 'mrv_data_updated',
+      by: req.user.id,
+      timestamp: new Date(),
+    });
+
+    await plantation.save();
+
+    res.json({
+      success: true,
+      message: 'MRV data updated successfully.',
+      plantation: plantation.toObject(),
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 export default router;

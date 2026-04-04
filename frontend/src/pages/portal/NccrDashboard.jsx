@@ -29,7 +29,9 @@ import {
 } from 'react-icons/fa';
 import StatusTimeline from '../../components/plantation/StatusTimeline';
 import { buildLifecycleTimestamps } from '../../utils/plantationLifecycle';
+import MrvDataModal from '../../components/portal/MrvDataModal';
 import toast from 'react-hot-toast';
+import { FaDatabase, FaMicroscope } from 'react-icons/fa';
 
 const PENDING_NCCR = 'PENDING_NCCR';
 const TOKEN_MINTED = 'TOKEN_MINTED';
@@ -53,11 +55,14 @@ const NccrDashboard = () => {
     email: '',
     district: '',
     state: '',
+    password: '',
   });
   const [analytics, setAnalytics] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
   const [settings, setSettings] = useState(null);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [selectedPlantation, setSelectedPlantation] = useState(null);
+  const [showMrvModal, setShowMrvModal] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -510,15 +515,23 @@ const NccrDashboard = () => {
                   <StatusTimeline status={p.status} timestamps={buildLifecycleTimestamps(p)} compact />
                 </div>
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-3 items-center">
-                  <button
-                    type="button"
-                    onClick={() => handleApprove(p._id)}
-                    disabled={actionId === p._id}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-bc-green-600 text-white rounded-lg font-medium hover:bg-bc-green-700 disabled:opacity-50"
-                  >
-                    <FaCheckCircle className="w-4 h-4" />
-                    {actionId === p._id ? 'Processing...' : 'Final Approve'}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedPlantation(p); setShowMrvModal(true); }}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium hover:bg-blue-200"
+                    >
+                        <FaMicroscope className="w-4 h-4" /> Update MRV
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(p._id)}
+                      disabled={actionId === p._id}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-bc-green-600 text-white rounded-lg font-medium hover:bg-bc-green-700 disabled:opacity-50"
+                    >
+                      <FaCheckCircle className="w-4 h-4" />
+                      {actionId === p._id ? 'Processing...' : 'Final Approve'}
+                    </button>
                   <div className="flex-1 flex gap-2 items-center flex-wrap">
                     <input
                       type="text"
@@ -575,17 +588,17 @@ const NccrDashboard = () => {
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           />
           <input
-            type="text"
-            placeholder="State"
-            value={newPanchayat.state}
-            onChange={(e) => setNewPanchayat((p) => ({ ...p, state: e.target.value }))}
+            type="password"
+            placeholder="Password"
+            value={newPanchayat.password}
+            onChange={(e) => setNewPanchayat((p) => ({ ...p, password: e.target.value }))}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           />
           <button
             type="button"
             onClick={async () => {
-              if (!newPanchayat.name || !newPanchayat.email) {
-                toast.error('Name and email are required');
+              if (!newPanchayat.name || !newPanchayat.email || !newPanchayat.password) {
+                toast.error('Name, email, and password are required');
                 return;
               }
               setCreating(true);
@@ -593,7 +606,7 @@ const NccrDashboard = () => {
                 const res = await createPanchayat(newPanchayat);
                 if (res.success) {
                   toast.success('Panchayat created');
-                  setNewPanchayat({ name: '', email: '', district: '', state: '' });
+                  setNewPanchayat({ name: '', email: '', password: '', district: '', state: '' });
                   load();
                 } else {
                   toast.error(res.message || 'Failed to create Panchayat');
@@ -684,6 +697,13 @@ const NccrDashboard = () => {
           </div>
         </section>
       )}
+
+      <MrvDataModal
+        isOpen={showMrvModal}
+        onClose={() => { setShowMrvModal(false); setSelectedPlantation(null); }}
+        plantation={selectedPlantation}
+        onSuccess={() => load()}
+      />
     </div>
   );
 };
