@@ -18,6 +18,7 @@ import {
   FaHistory,
   FaGlobeAmericas,
   FaHeartbeat,
+  FaBrain,
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
@@ -38,6 +39,7 @@ const navItems = [
 
 const panchayatNav = { path: '/portal/panchayat', icon: FaLandmark, label: 'Panchayat Verification', roles: ['panchayat'] };
 const nccrNav = { path: '/portal/nccr', icon: FaShieldAlt, label: 'NCCR Approval', roles: ['admin', 'verifier'] };
+const nccrIntelligence = { path: '/portal/analysis/advanced', icon: FaBrain, label: 'Intelligence Lab', roles: ['admin', 'verifier'] };
 
 const restrictedPaths = ['/portal/land', '/portal/carbon', '/portal/blockchain'];
 
@@ -146,6 +148,19 @@ const PortalLayout = () => {
               <span>{nccrNav.label}</span>
             </NavLink>
           )}
+          {nccrIntelligence.roles.includes(user?.role) && (
+            <NavLink
+              to={nccrIntelligence.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${
+                  isActive ? 'bg-purple-50 text-purple-700 font-medium border-l-4 border-purple-500' : 'text-gray-700 hover:bg-gray-100'
+                }`
+              }
+            >
+              <FaBrain className="w-5 h-5 shrink-0" />
+              <span>{nccrIntelligence.label}</span>
+            </NavLink>
+          )}
         </nav>
       </aside>
 
@@ -207,6 +222,18 @@ const PortalLayout = () => {
                 >
                   <FaShieldAlt className="w-5 h-5" />
                   <span>{nccrNav.label}</span>
+                </NavLink>
+              )}
+              {nccrIntelligence.roles.includes(user?.role) && (
+                <NavLink
+                  to={nccrIntelligence.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-6 py-3 ${isActive ? 'bg-purple-50 text-purple-700' : ''}`
+                  }
+                >
+                  <FaBrain className="w-5 h-5" />
+                  <span>{nccrIntelligence.label}</span>
                 </NavLink>
               )}
             </nav>

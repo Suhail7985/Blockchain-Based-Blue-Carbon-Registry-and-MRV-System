@@ -27,6 +27,7 @@ import MyPlantations from './pages/MyPlantations';
 import NationalImpactDashboard from './pages/portal/NationalImpactDashboard';
 import PlantationGIS from './pages/portal/PlantationGIS';
 import HealthMonitoring from './pages/portal/HealthMonitoring';
+import AdvancedAnalysis from './pages/portal/AdvancedAnalysis';
 import './App.css';
 
 function PortalIndex() {
@@ -83,6 +84,7 @@ function App() {
               <Route path="impact" element={<NationalImpactDashboard />} />
               <Route path="gis" element={<PlantationGIS />} />
               <Route path="health" element={<HealthMonitoring />} />
+              <Route path="analysis/advanced" element={<AdvancedAnalysis />} />
             </Route>
 
             {/* Redirect legacy dashboard */}

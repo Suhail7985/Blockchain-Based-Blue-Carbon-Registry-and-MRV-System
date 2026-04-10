@@ -175,6 +175,80 @@ router.get('/analytics', async (req, res) => {
   }
 });
 
+router.get('/analysis/intelligence', async (req, res) => {
+  try {
+    const plantations = await Plantation.find({})
+      .populate('userId', 'name email district state')
+      .populate('landId', 'areaHectares')
+      .lean();
+
+    // 1. Community Impact Aggregation
+    const communityImpact = plantations.reduce((acc, p) => {
+      const mgnrega = p.panchayatData?.mgnrega;
+      if (mgnrega?.wageRate && mgnrega?.personDays) {
+        const state = p.userId?.state || 'Unknown';
+        if (!acc[state]) acc[state] = { wages: 0, personDays: 0, count: 0 };
+        acc[state].wages += (mgnrega.wageRate * mgnrega.personDays);
+        acc[state].personDays += mgnrega.personDays;
+        acc[state].count += 1;
+      }
+      return acc;
+    }, {});
+
+    // 2. Risk IQ (Distribution)
+    const riskAnalysis = analyzePlantationsRisk(plantations);
+    const riskDistribution = riskAnalysis.reduce((acc, r) => {
+      acc[r.riskScore] = (acc[r.riskScore] || 0) + 1;
+      return acc;
+    }, { LOW: 0, MEDIUM: 0, HIGH: 0 });
+
+    // 3. Data Precision (NGO reported trees vs MRV measured biomass)
+    const precisionLogs = plantations
+      .filter(p => p.mrvData?.biomass?.aboveGround && p.treeCount > 0)
+      .map(p => {
+        const measured = p.mrvData.biomass.aboveGround;
+        const estimated = p.treeCount * 0.05; // Fallback estimate (50kg/tree)
+        const error = Math.abs(measured - estimated) / measured;
+        return {
+          id: p.plantationId,
+          species: p.speciesName,
+          error: Math.round(error * 1000) / 10,
+          measured,
+          estimated
+        };
+      })
+      .slice(0, 10);
+
+    // 4. Species Benchmarking (Survival Rates)
+    const speciesStats = plantations.reduce((acc, p) => {
+      if (p.speciesName && p.panchayatData?.survivalRate != null) {
+        if (!acc[p.speciesName]) acc[p.speciesName] = { totalSurvival: 0, count: 0 };
+        acc[p.speciesName].totalSurvival += p.panchayatData.survivalRate;
+        acc[p.speciesName].count += 1;
+      }
+      return acc;
+    }, {});
+
+    const speciesBenchmarking = Object.keys(speciesStats).map(name => ({
+      name,
+      avgSurvival: Math.round((speciesStats[name].totalSurvival / speciesStats[name].count) * 10) / 10,
+      count: speciesStats[name].count
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        communityImpact: Object.keys(communityImpact).map(state => ({ state, ...communityImpact[state] })),
+        riskDistribution,
+        precisionLogs,
+        speciesBenchmarking
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 router.get('/settings/carbon', async (req, res) => {
   try {
     let settings = await CarbonSettings.findOne().lean();
