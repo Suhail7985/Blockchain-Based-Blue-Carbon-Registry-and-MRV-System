@@ -161,4 +161,8 @@ export const getPanchayatPendingLand = () => api.get('/panchayat/land/pending').
 export const panchayatApproveLand = (userId) => api.patch(`/panchayat/land/${userId}/approve`).then((r) => r.data);
 export const panchayatRejectLand = (userId, reason) => api.patch(`/panchayat/land/${userId}/reject`, { reason }).then((r) => r.data);
 
+// Marketplace
+export const getMarketplaceListings = () => api.get('/marketplace/listings').then((r) => r.data);
+export const getMarketplaceStats = () => api.get('/marketplace/stats').then((r) => r.data);
+
 export default api;

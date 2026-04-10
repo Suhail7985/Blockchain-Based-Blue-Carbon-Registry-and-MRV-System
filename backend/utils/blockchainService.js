@@ -14,6 +14,7 @@ let provider = null;
 let wallet = null;
 let registryContract = null;
 let tokenContract = null;
+let marketplaceContract = null;
 
 function getProvider() {
   if (!provider) {
@@ -59,10 +60,33 @@ function getTokenContract() {
       'function mint(address to, uint256 amount) external',
       'function balanceOf(address account) external view returns (uint256)',
       'function decimals() external view returns (uint8)',
+      'function burn(uint256 amount) external',
+      'function approve(address spender, uint256 amount) external returns (bool)',
+      'function allowance(address owner, address spender) external view returns (uint256)',
     ];
     tokenContract = new ethers.Contract(addr, abi, getWallet());
   }
   return tokenContract;
+}
+
+function getMarketplaceContract() {
+  const addr = process.env.CARBON_MARKETPLACE_ADDRESS;
+  if (!addr) {
+    throw new Error('CARBON_MARKETPLACE_ADDRESS is not set.');
+  }
+  if (!marketplaceContract) {
+    const abi = [
+      'function nextListingId() external view returns (uint256)',
+      'function listings(uint256) external view returns (uint256 id, address seller, address tokenAddress, uint256 amount, uint256 pricePerToken, bool isActive)',
+      'function listCredits(address tokenAddress, uint256 amount, uint256 pricePerToken) external',
+      'function buyCredits(uint256 listingId) external payable',
+      'function cancelListing(uint256 listingId) external',
+      'event CreditsListed(uint256 indexed listingId, address indexed seller, uint256 amount, uint256 pricePerToken)',
+      'event CreditsPurchased(uint256 indexed listingId, address indexed buyer, address indexed seller, uint256 amount, uint256 totalPrice)',
+    ];
+    marketplaceContract = new ethers.Contract(addr, abi, getWallet());
+  }
+  return marketplaceContract;
 }
 
 /**
@@ -88,7 +112,8 @@ export function isBlockchainConfigured() {
   return !!(
     process.env.NCCR_WALLET_PRIVATE_KEY &&
     process.env.PLANTATION_REGISTRY_ADDRESS &&
-    process.env.CARBON_CREDIT_TOKEN_ADDRESS
+    process.env.CARBON_CREDIT_TOKEN_ADDRESS &&
+    process.env.CARBON_MARKETPLACE_ADDRESS
   );
 }
 
@@ -225,4 +250,35 @@ export function getExplorerTxUrl(txHash) {
 export function getExplorerAddressUrl(address) {
   if (!address) return null;
   return `${EXPLORER_URL}/address/${address}`;
+}
+
+/**
+ * Fetch all active listings from the Carbon Marketplace.
+ */
+export async function getMarketplaceListings() {
+  if (!isBlockchainConfigured()) return [];
+  try {
+    const marketplace = getMarketplaceContract();
+    const nextId = await marketplace.nextListingId();
+    const count = Number(nextId);
+    const activeListings = [];
+
+    for (let i = 0; i < count; i++) {
+        const l = await marketplace.listings(i);
+        if (l.isActive) {
+            activeListings.push({
+                listingId: Number(l.id),
+                seller: l.seller,
+                tokenAddress: l.tokenAddress,
+                amount: ethers.formatUnits(l.amount, 18),
+                pricePerToken: ethers.formatEther(l.pricePerToken),
+                totalPrice: ethers.formatEther(l.amount * l.pricePerToken)
+            });
+        }
+    }
+    return activeListings;
+  } catch (err) {
+    console.error('[blockchainService] getMarketplaceListings error:', err.message);
+    return [];
+  }
 }

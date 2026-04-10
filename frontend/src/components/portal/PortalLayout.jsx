@@ -19,9 +19,11 @@ import {
   FaGlobeAmericas,
   FaHeartbeat,
   FaBrain,
+  FaStore,
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
+import { useTranslation, languages } from '../../contexts/LanguageContext';
 
 const navItems = [
   { path: '/portal', icon: FaTachometerAlt, label: 'Dashboard' },
@@ -40,15 +42,40 @@ const navItems = [
 const panchayatNav = { path: '/portal/panchayat', icon: FaLandmark, label: 'Panchayat Verification', roles: ['panchayat'] };
 const nccrNav = { path: '/portal/nccr', icon: FaShieldAlt, label: 'NCCR Approval', roles: ['admin', 'verifier'] };
 const nccrIntelligence = { path: '/portal/analysis/advanced', icon: FaBrain, label: 'Intelligence Lab', roles: ['admin', 'verifier'] };
+const marketplaceNav = { path: '/portal/marketplace', icon: FaStore, label: 'CSR Marketplace', roles: ['admin', 'verifier', 'ngo', 'corporate'] };
 
 const restrictedPaths = ['/portal/land', '/portal/carbon', '/portal/blockchain'];
 
 const PortalLayout = () => {
   const { user, logout } = useAuth();
+  const { t, lang, setLang } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isActive = user?.accountStatus === ACCOUNT_STATUS.ACTIVE;
+
+  const getTranslatedLabel = (label) => {
+    const key = label.toLowerCase().replace(/ & /g, '').replace(/ /g, '');
+    const keyMap = {
+      'dashboard': 'dashboard',
+      'profilekyc': 'profile',
+      'landregistration': 'landRegistration',
+      'plantationsubmission': 'plantationSubmission',
+      'myplantationsstatus': 'myPlantations',
+      'nationalimpact': 'nationalImpact',
+      'gismonitoring': 'gisMonitoring',
+      'healthmonitoring': 'healthMonitoring',
+      'carboncredits': 'credits',
+      'blockchainrecords': 'blockchain',
+      'notifications': 'notifications',
+      'panchayatverification': 'panchayatVerification',
+      'nccrapproval': 'nccrApproval',
+      'intelligencelab': 'intelligenceLab',
+      'csrmarketplace': 'marketplace'
+    };
+    const translatedKey = keyMap[key] || key;
+    return t(translatedKey);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -60,11 +87,9 @@ const PortalLayout = () => {
   const hideForRole = (path) => {
     if (!user) return false;
     if (user.role === 'panchayat') {
-      // Hide citizen-only items for Panchayat
       return path === '/portal/plantation' || path === '/portal/carbon';
     }
     if (user.role === 'ngo') {
-      // NGO focuses on its own dashboard; hide citizen KYC land/plantation/carbon/blockchain
       return (
         path === '/portal/land' ||
         path === '/portal/plantation' ||
@@ -74,7 +99,6 @@ const PortalLayout = () => {
       );
     }
     if (user.role === 'admin' || user.role === 'verifier') {
-      // NCCR users use admin dashboards; hide citizen plantation/carbon
       return path === '/portal/plantation' || path === '/portal/my-plantations' || path === '/portal/carbon';
     }
     return false;
@@ -118,7 +142,7 @@ const PortalLayout = () => {
               >
                 {restricted && <FaLock className="w-4 h-4 shrink-0" />}
                 {!restricted && <Icon className="w-5 h-5 shrink-0" />}
-                <span>{item.label}</span>
+                <span>{getTranslatedLabel(item.label)}</span>
               </NavLink>
             );
           })}
@@ -132,7 +156,7 @@ const PortalLayout = () => {
               }
             >
               <FaLandmark className="w-5 h-5 shrink-0" />
-              <span>{panchayatNav.label}</span>
+              <span>{getTranslatedLabel(panchayatNav.label)}</span>
             </NavLink>
           )}
           {nccrNav.roles.includes(user?.role) && (
@@ -145,7 +169,7 @@ const PortalLayout = () => {
               }
             >
               <FaShieldAlt className="w-5 h-5 shrink-0" />
-              <span>{nccrNav.label}</span>
+              <span>{getTranslatedLabel(nccrNav.label)}</span>
             </NavLink>
           )}
           {nccrIntelligence.roles.includes(user?.role) && (
@@ -158,7 +182,20 @@ const PortalLayout = () => {
               }
             >
               <FaBrain className="w-5 h-5 shrink-0" />
-              <span>{nccrIntelligence.label}</span>
+              <span>{getTranslatedLabel(nccrIntelligence.label)}</span>
+            </NavLink>
+          )}
+          {marketplaceNav.roles.includes(user?.role) && (
+            <NavLink
+              to={marketplaceNav.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${
+                  isActive ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
+                }`
+              }
+            >
+              <FaStore className="w-5 h-5 shrink-0" />
+              <span>{getTranslatedLabel(marketplaceNav.label)}</span>
             </NavLink>
           )}
         </nav>
@@ -196,7 +233,7 @@ const PortalLayout = () => {
                     }
                   >
                     {restricted ? <FaLock className="w-4 h-4" /> : <Icon className="w-5 h-5" />}
-                    <span>{item.label}</span>
+                    <span>{getTranslatedLabel(item.label)}</span>
                   </NavLink>
                 );
               })}
@@ -209,7 +246,7 @@ const PortalLayout = () => {
                   }
                 >
                   <FaLandmark className="w-5 h-5" />
-                  <span>{panchayatNav.label}</span>
+                  <span>{getTranslatedLabel(panchayatNav.label)}</span>
                 </NavLink>
               )}
               {nccrNav.roles.includes(user?.role) && (
@@ -221,7 +258,7 @@ const PortalLayout = () => {
                   }
                 >
                   <FaShieldAlt className="w-5 h-5" />
-                  <span>{nccrNav.label}</span>
+                  <span>{getTranslatedLabel(nccrNav.label)}</span>
                 </NavLink>
               )}
               {nccrIntelligence.roles.includes(user?.role) && (
@@ -233,7 +270,19 @@ const PortalLayout = () => {
                   }
                 >
                   <FaBrain className="w-5 h-5" />
-                  <span>{nccrIntelligence.label}</span>
+                  <span>{getTranslatedLabel(nccrIntelligence.label)}</span>
+                </NavLink>
+              )}
+              {marketplaceNav.roles.includes(user?.role) && (
+                <NavLink
+                  to={marketplaceNav.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-6 py-3 ${isActive ? 'bg-emerald-50 text-emerald-700' : ''}`
+                  }
+                >
+                  <FaStore className="w-5 h-5" />
+                  <span>{getTranslatedLabel(marketplaceNav.label)}</span>
                 </NavLink>
               )}
             </nav>
@@ -243,7 +292,6 @@ const PortalLayout = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 md:ml-72 flex flex-col min-h-screen transition-all duration-300">
-        {/* Top Header (Mobile specific elements hidden here, but we keep the header area) */}
         <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm sticky top-0 z-30 flex items-center justify-between p-4 md:px-8">
           <div className="flex items-center gap-3 md:hidden">
             <button
@@ -260,16 +308,29 @@ const PortalLayout = () => {
 
           <div className="hidden md:block">
             <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-600">
-              {navItems.find(i => i.path === location.pathname)?.label || 
+              {getTranslatedLabel(navItems.find(i => i.path === location.pathname)?.label || 
                (location.pathname.includes('panchayat') ? 'Panchayat Verification' : '') ||
-               (location.pathname.includes('nccr') ? 'NCCR Approval' : '') || 'Dashboard'}
+               (location.pathname.includes('nccr') ? 'NCCR Approval' : '') || 
+               (location.pathname.includes('marketplace') ? 'CSR Marketplace' : '') ||
+               'Dashboard')}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              className="hidden sm:block text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-bc-green-500"
+            >
+              {languages.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
             <div className="hidden sm:block text-right">
                <p className="text-sm font-bold text-gray-900 leading-tight">{user?.name}</p>
-               <p className="text-xs text-gray-500 font-medium">{user?.role === 'admin' ? 'NCCR Admin' : user?.role}</p>
+               <p className="text-xs text-gray-500 font-medium">{user?.role === 'admin' ? t('intelligenceLab') : user?.role}</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-100 to-teal-100 border border-green-200 flex items-center justify-center text-green-700 font-bold shadow-sm">
                {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -284,7 +345,6 @@ const PortalLayout = () => {
           </div>
         </header>
 
-        {/* Dashboard Content */}
         <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
           <AnimatePresence mode="wait">
             <motion.div

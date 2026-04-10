@@ -12,4 +12,7 @@ contract CarbonCreditToken is ERC20, Ownable {
         _mint(to, amount);
     }
 
+    function burn(uint256 amount) public {
+        _burn(msg.sender, amount);
+    }
 }
