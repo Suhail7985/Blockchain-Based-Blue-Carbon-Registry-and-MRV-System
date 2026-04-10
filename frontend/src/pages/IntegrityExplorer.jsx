@@ -12,9 +12,11 @@ import {
   FaFileAlt,
   FaArrowRight
 } from 'react-icons/fa';
-import axios from 'axios';
+import api from '../services/api';
+import { useTranslation } from '../contexts/LanguageContext';
 
 const IntegrityExplorer = () => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -30,7 +32,7 @@ const IntegrityExplorer = () => {
 
     try {
       // Reusing the public route if it exists, or simulated for demo
-      const res = await axios.get(`http://localhost:5000/api/public/verify/${query}`);
+      const res = await api.get(`/public/verify/${query}`);
       if (res.data.success) {
         setResult(res.data.data);
       } else {
@@ -81,13 +83,13 @@ const IntegrityExplorer = () => {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-bc-green-50 text-bc-green-700 rounded-full text-xs font-bold uppercase tracking-widest mb-6"
           >
-            <FaShieldAlt /> Public Trust Explorer
+            <FaShieldAlt /> {t('explorer')}
           </motion.div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
-            Verify Any Blue Carbon Credit
+            {t('verifyTitle')}
           </h1>
           <p className="text-lg text-gray-500 mb-10 max-w-2xl mx-auto">
-            Input a Plantation ID, Wallet Address, or Blockchain Hash to trace the complete audit lineage from sapling to token.
+            {t('verifySubtitle')}
           </p>
 
           <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto group">
@@ -106,7 +108,7 @@ const IntegrityExplorer = () => {
                 disabled={loading}
                 className="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition-all flex items-center gap-2 disabled:opacity-50"
               >
-                {loading ? <FaSync className="animate-spin" /> : 'Explore'}
+                {loading ? <FaSync className="animate-spin" /> : t('exploreBtn')}
               </button>
             </div>
           </form>
@@ -163,7 +165,7 @@ const IntegrityExplorer = () => {
 
                   <div className="space-y-4 pt-6 border-t border-gray-50">
                     <div className="flex justify-between">
-                      <span className="text-xs text-gray-400 font-bold uppercase">Scientific ID</span>
+                      <span className="text-xs text-gray-400 font-bold uppercase">{t('scientificId')}</span>
                       <span className="text-xs font-mono text-gray-700">{result.speciesName}</span>
                     </div>
                     <div className="flex justify-between">
@@ -178,7 +180,7 @@ const IntegrityExplorer = () => {
 
                   <div className="mt-8">
                     <button className="w-full py-3 bg-gray-50 text-gray-700 font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
-                      <FaFileAlt /> Download Certificate
+                      <FaFileAlt /> {t('downloadCert')}
                     </button>
                   </div>
                 </div>
@@ -189,7 +191,7 @@ const IntegrityExplorer = () => {
                 <div className="bg-white rounded-3xl border border-gray-100 p-10 shadow-sm">
                   <h3 className="text-lg font-bold text-gray-900 mb-8 flex items-center gap-3">
                     <span className="w-1.5 h-6 bg-bc-green-600 rounded-full" />
-                    Project Lineage & Verification Trail
+                    {t('auditLineage')}
                   </h3>
 
                   <div className="pl-2">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useTranslation } from '../../contexts/LanguageContext';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -18,6 +19,7 @@ const customIcon = new L.Icon({
 });
 
 const NationalImpactDashboard = () => {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -64,7 +66,7 @@ const NationalImpactDashboard = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
           <FaGlobeAmericas className="text-bc-green-600" />
-          National Carbon Impact
+          {t('nationalImpact')}
         </h1>
         <p className="text-gray-600 mt-2 text-lg">
           Live aggregated environmental metrics from CarbonSetu
@@ -78,7 +80,7 @@ const NationalImpactDashboard = () => {
             <FaChartLine />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-1">Total Plantations</p>
+            <p className="text-sm font-medium text-gray-500 mb-1">{t('activeProjects')}</p>
             <p className="text-3xl font-bold text-gray-900">{totalPlantations}</p>
             <p className="text-xs text-blue-600 mt-2 font-medium bg-blue-50 py-1 px-2 rounded-md inline-block">Registered Nationwide</p>
           </div>
@@ -89,7 +91,7 @@ const NationalImpactDashboard = () => {
             <FaCheckCircle />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-1">Verified Sites</p>
+            <p className="text-sm font-medium text-gray-500 mb-1">{t('verifiedSites')}</p>
             <p className="text-3xl font-bold text-gray-900">{verifiedPlantations}</p>
             <p className="text-xs text-teal-600 mt-2 font-medium bg-teal-50 py-1 px-2 rounded-md inline-block">NCCR Approved</p>
           </div>
@@ -100,7 +102,7 @@ const NationalImpactDashboard = () => {
             <FaLeaf />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500 mb-1">Total CO₂ Captured</p>
+            <p className="text-sm font-medium text-gray-500 mb-1">{t('totalCO2')}</p>
             <p className="text-3xl font-bold text-gray-900">{totalCO2.toLocaleString()}</p>
             <p className="text-xs text-bc-green-700 mt-2 font-medium bg-bc-green-50 py-1 px-2 rounded-md inline-block">Tons of CO₂eq</p>
           </div>

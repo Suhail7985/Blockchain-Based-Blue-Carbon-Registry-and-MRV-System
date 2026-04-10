@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   FaTachometerAlt,
@@ -20,12 +20,14 @@ import {
   FaHeartbeat,
   FaBrain,
   FaStore,
+  FaHome,
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
 import { useTranslation, languages } from '../../contexts/LanguageContext';
 
 const navItems = [
+  { path: '/', icon: FaHome, label: 'Home Page' },
   { path: '/portal', icon: FaTachometerAlt, label: 'Dashboard' },
   { path: '/portal/profile', icon: FaUser, label: 'Profile & KYC' },
   { path: '/portal/land', icon: FaMapMarkedAlt, label: 'Land Registration' },
@@ -57,6 +59,7 @@ const PortalLayout = () => {
   const getTranslatedLabel = (label) => {
     const key = label.toLowerCase().replace(/ & /g, '').replace(/ /g, '');
     const keyMap = {
+      'homepage': 'home',
       'dashboard': 'dashboard',
       'profilekyc': 'profile',
       'landregistration': 'landRegistration',
@@ -109,15 +112,15 @@ const PortalLayout = () => {
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex md:flex-col md:w-72 bg-white/80 backdrop-blur-xl border-r border-gray-100 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] fixed h-full z-40">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-bc-green-600 rounded flex items-center justify-center">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-12 h-12 bg-bc-green-600 rounded flex items-center justify-center group-hover:bg-bc-green-700 transition-colors">
               <span className="text-white text-2xl">🌊</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">CarbonSetu</h1>
+              <h1 className="text-lg font-bold text-gray-900 group-hover:text-bc-green-600 transition-colors">CarbonSetu</h1>
               <p className="text-xs text-gray-500">MoES / NCCR</p>
             </div>
-          </div>
+          </Link>
         </div>
         <nav className="flex-1 overflow-y-auto py-4">
           {navItems.map((item) => {
@@ -300,10 +303,12 @@ const PortalLayout = () => {
             >
               <FaBars className="w-5 h-5" />
             </button>
-            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-500 rounded-lg flex items-center justify-center shadow-sm">
-               <span className="text-white text-sm">🌊</span>
-            </div>
-            <span className="font-bold text-gray-800 text-sm">BC Registry</span>
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-500 rounded-lg flex items-center justify-center shadow-sm">
+                <span className="text-white text-sm">🌊</span>
+              </div>
+              <span className="font-bold text-gray-800 text-sm">BC Registry</span>
+            </Link>
           </div>
 
           <div className="hidden md:block">

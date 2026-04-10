@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
 import { getVerifiedLands, getMyPlantations, getCarbonSummary } from '../../services/api';
+import { useTranslation } from '../../contexts/LanguageContext';
 import WalletConnect from '../../components/WalletConnect';
 import {
   FaUser,
@@ -27,6 +28,7 @@ const PLANTATION_STATUS = {
 
 const PortalDashboard = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const isActive = user?.accountStatus === ACCOUNT_STATUS.ACTIVE;
   const isProfileIncomplete = [ACCOUNT_STATUS.PROFILE_INCOMPLETE, ACCOUNT_STATUS.VERIFIED_PENDING_LAND, ACCOUNT_STATUS.IDENTITY_VERIFIED].includes(user?.accountStatus);
 
@@ -66,9 +68,9 @@ const PortalDashboard = () => {
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-          Welcome, {user?.name}
+          {t('welcomeBack')}, {user?.name}
         </h1>
-        <p className="text-gray-600">CarbonSetu: Bridging Communities to Carbon Markets</p>
+        <p className="text-gray-600">{t('welcome')}</p>
         {user?.referenceId && (
           <p className="text-sm text-gray-500 mt-2">
             Reference ID: <span className="font-mono font-medium">{user.referenceId}</span>
@@ -129,20 +131,20 @@ const PortalDashboard = () => {
               <p className="text-xl font-bold text-bc-green-800 mt-1">{verifiedCount}</p>
             </div>
             <div className="p-4 rounded-lg border border-gray-200 bg-bc-green-50">
-              <p className="text-sm text-gray-500">Total CO₂ Generated (tCO₂e)</p>
+              <p className="text-sm text-gray-500">{t('totalCO2')} (tCO₂e)</p>
               <p className="text-xl font-bold text-bc-green-800 mt-1">{carbon?.totalCO2 ?? 0}</p>
             </div>
             <div className="p-4 rounded-lg border border-gray-200 bg-bc-green-50">
               <p className="text-sm text-gray-500 flex items-center gap-1">
-                <FaCoins className="w-4 h-4" /> Total Tokens Earned
+                <FaCoins className="w-4 h-4" /> Total Tokens
               </p>
               <p className="text-xl font-bold text-bc-green-800 mt-1">{carbon?.totalTokens ?? 0}</p>
             </div>
             <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
               <p className="text-sm text-gray-500 flex items-center gap-1">
-                <FaLink className="w-4 h-4" /> Blockchain Records
+                <FaLink className="w-4 h-4" /> {t('blockchain')}
               </p>
-              <p className="text-xl font-bold text-gray-900 mt-1">{blockchainCount} record(s)</p>
+              <p className="text-xl font-bold text-gray-900 mt-1">{blockchainCount} {blockchainCount === 1 ? 'record' : 'records'}</p>
               <Link to="/portal/blockchain" className="text-sm text-bc-green-600 font-medium mt-1 inline-block hover:underline">
                 View records →
               </Link>
@@ -227,7 +229,7 @@ const PortalDashboard = () => {
               className="p-4 rounded-lg border border-gray-200 hover:border-bc-green-300 hover:bg-bc-green-50 transition-colors"
             >
               <FaUser className="w-8 h-8 text-bc-green-600 mb-2" />
-              <h3 className="font-medium text-gray-900">Profile & KYC</h3>
+              <h3 className="font-medium text-gray-900">{t('profile')}</h3>
               <p className="text-sm text-gray-500 mt-1">Update your details</p>
             </Link>
           </div>

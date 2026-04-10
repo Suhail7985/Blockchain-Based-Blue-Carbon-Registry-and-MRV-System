@@ -11,8 +11,10 @@ import {
   FaCheckCircle 
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 const CorporateDashboard = () => {
+    const { t } = useTranslation();
     const [listings, setListings] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ const CorporateDashboard = () => {
             {/* Header section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Corporate CSR Marketplace</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">{t('marketplace')}</h1>
                     <p className="text-gray-500 mt-1">Directly fund verified blue carbon restoration projects and offset your carbon footprint.</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -71,19 +73,19 @@ const CorporateDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
                     icon={FaLeaf} 
-                    label="Available Credits" 
+                    label={t('inventory')} 
                     value={`${stats?.totalActiveCredits || '0.00'} Tons`} 
                     color="bg-emerald-500" 
                 />
                 <StatCard 
                     icon={FaGlobeAmericas} 
-                    label="Active Projects" 
+                    label={t('activeProjects')} 
                     value={stats?.activeListingsCount || '0'} 
                     color="bg-sky-500" 
                 />
                 <StatCard 
                     icon={FaChartLine} 
-                    label="Avg. Price / Ton" 
+                    label={t('pricePerTon')} 
                     value={`${stats?.averagePricePerTon || '0.00'} ETH`} 
                     color="bg-purple-500" 
                 />
@@ -148,18 +150,18 @@ const CorporateDashboard = () => {
                                 <div className="p-5 space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase">Inventory</p>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase">{t('inventory')}</p>
                                             <p className="text-lg font-bold text-gray-900">{listing.amount} T</p>
                                         </div>
                                         <div className="bg-green-50 p-3 rounded-xl border border-green-100">
-                                            <p className="text-[10px] text-green-600 font-bold uppercase">Price/Ton</p>
+                                            <p className="text-[10px] text-green-600 font-bold uppercase">{t('pricePerTon')}</p>
                                             <p className="text-lg font-bold text-green-700">{listing.pricePerToken} ETH</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between text-xs">
-                                            <span className="text-gray-500">Project Integrity Score</span>
+                                            <span className="text-gray-500">{t('integrityScore')}</span>
                                             <span className="text-emerald-600 font-bold">98/100</span>
                                         </div>
                                         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -183,7 +185,7 @@ const CorporateDashboard = () => {
                                             className="px-4 py-2 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all flex items-center gap-2"
                                         >
                                             <FaShoppingCart className="w-3 h-3" />
-                                            Buy Credits
+                                            {t('buyCredits')}
                                         </button>
                                     </div>
                                 </div>
