@@ -29,7 +29,7 @@ import { useTranslation, languages } from '../../contexts/LanguageContext';
 const navItems = [
   { path: '/', icon: FaHome, label: 'Home Page' },
   { path: '/portal', icon: FaTachometerAlt, label: 'Dashboard' },
-  { path: '/portal/profile', icon: FaUser, label: 'Profile & KYC' },
+  { path: '/portal/profile', icon: FaUser, label: 'Account & Profile' },
   { path: '/portal/land', icon: FaMapMarkedAlt, label: 'Land Registration' },
   { path: '/portal/plantation', icon: FaSeedling, label: 'Plantation Submission' },
   { path: '/portal/my-plantations', icon: FaHistory, label: 'My Plantations & Status' },
@@ -61,7 +61,7 @@ const PortalLayout = () => {
     const keyMap = {
       'homepage': 'home',
       'dashboard': 'dashboard',
-      'profilekyc': 'profile',
+      'accountprofile': 'profile',
       'landregistration': 'landRegistration',
       'plantationsubmission': 'plantationSubmission',
       'myplantationsstatus': 'myPlantations',

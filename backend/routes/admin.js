@@ -749,4 +749,43 @@ router.patch('/plantations/:id/mrv', async (req, res) => {
   }
 });
 
+// Delete User (Citizen or Panchayat)
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Only allow deleting citizens and panchayats
+    if (!['citizen', 'panchayat'].includes(user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Only citizen and panchayat profiles can be deleted via this registry action.'
+      });
+    }
+
+    const { role, email, name, panchayatId, referenceId } = user;
+    
+    await User.findByIdAndDelete(req.params.id);
+
+    // Track the deletion
+    auditLog('USER_DELETED', req.user.id, 'delete_user', {
+      targetUserId: req.params.id,
+      targetRole: role,
+      targetEmail: email,
+      targetName: name,
+      referenceId,
+      panchayatId
+    });
+
+    res.json({
+      success: true,
+      message: `${role.charAt(0).toUpperCase() + role.slice(1)} profile successfully purged from registry.`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

@@ -3,7 +3,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
-import { FaCheckCircle, FaTimesCircle, FaCloudUploadAlt } from 'react-icons/fa';
+import { 
+  FaCheckCircle, 
+  FaTimesCircle, 
+  FaCloudUploadAlt, 
+  FaUser, 
+  FaIdCard, 
+  FaMapMarkedAlt, 
+  FaInfoCircle,
+  FaWallet,
+  FaUserEdit
+} from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const formatDateForInput = (d) => {
   if (!d) return '';
@@ -13,8 +25,8 @@ const formatDateForInput = (d) => {
 
 const ProfileKYC = () => {
   const { user, refreshUser } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [form, setForm] = useState({
     name: '',
     dateOfBirth: '',
@@ -59,23 +71,32 @@ const ProfileKYC = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleUpdateProfile = async (e) => {
+    if (e) e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
     try {
-      if (user?.accountStatus === ACCOUNT_STATUS.ACTIVE) {
-        const payload = { ...form };
-        if (payload.walletAddress === '') payload.walletAddress = undefined;
-        const res = await api.patch('/profile', payload);
-        if (res.data.success) {
-          setMessage({ type: 'success', text: res.data.message });
-          await refreshUser();
-        }
-        setLoading(false);
-        return;
+      const payload = { ...form };
+      if (payload.walletAddress === '') payload.walletAddress = undefined;
+      const res = await api.patch('/profile', payload);
+      if (res.data.success) {
+        toast.success(res.data.message);
+        await refreshUser();
       }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleSubmitKYC = async (e) => {
+    e.preventDefault();
+    if (!aadhaarFile && !user?.aadhaarDocumentPath) {
+      toast.error('Please select an Aadhaar document.');
+      return;
+    }
+    setLoading(true);
+    try {
       const fd = new FormData();
       fd.append('name', form.name);
       fd.append('dateOfBirth', form.dateOfBirth);
@@ -92,15 +113,12 @@ const ProfileKYC = () => {
 
       const res = await api.put('/profile', fd);
       if (res.data.success) {
-        setMessage({ type: 'success', text: res.data.message });
+        toast.success('KYC submitted for verification');
         setAadhaarFile(null);
         await refreshUser();
       }
     } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to save profile',
-      });
+      toast.error(err.response?.data?.message || 'Failed to submit KYC');
     } finally {
       setLoading(false);
     }
@@ -109,11 +127,10 @@ const ProfileKYC = () => {
   const handleLandUpload = async (e) => {
     e.preventDefault();
     if (!landFile) {
-      setMessage({ type: 'error', text: 'Please select a land document.' });
+      toast.error('Please select a land document.');
       return;
     }
     setLoading(true);
-    setMessage({ type: '', text: '' });
     try {
       const fd = new FormData();
       fd.append('landDocument', landFile);
@@ -123,15 +140,12 @@ const ProfileKYC = () => {
       if (form.walletAddress) fd.append('walletAddress', form.walletAddress);
       const res = await api.put('/profile/land-document', fd);
       if (res.data.success) {
-        setMessage({ type: 'success', text: res.data.message });
+        toast.success(res.data.message);
         setLandFile(null);
         await refreshUser();
       }
     } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to upload land document',
-      });
+      toast.error(err.response?.data?.message || 'Failed to upload land document');
     } finally {
       setLoading(false);
     }
@@ -139,345 +153,352 @@ const ProfileKYC = () => {
 
   const needsAadhaar = ![ACCOUNT_STATUS.ACTIVE, ACCOUNT_STATUS.PENDING_VERIFICATION].includes(user?.accountStatus);
   const needsLand = user?.accountStatus === ACCOUNT_STATUS.VERIFIED_PENDING_LAND || user?.accountStatus === ACCOUNT_STATUS.IDENTITY_VERIFIED;
-  const timeline = user?.statusTimeline || [
-    { step: 'Email Verified', completed: false },
-    { step: 'Identity Verified', completed: false },
-    { step: 'Land Verified', completed: false },
-    { step: 'Account Activated', completed: false },
+  const timeline = user?.statusTimeline || [];
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: FaInfoCircle },
+    { id: 'personal', label: 'Personal Details', icon: FaUserEdit },
+    { id: 'kyc', label: 'Identity & KYC', icon: FaIdCard },
+    { id: 'assets', label: 'Land & Assets', icon: FaMapMarkedAlt },
   ];
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-5xl mx-auto space-y-8">
       <StatusBanner accountStatus={user?.accountStatus} />
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile & KYC</h1>
-
-      {/* Progress Bar */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Verification Progress</h2>
-        <div className="space-y-3">
-          {timeline.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-3">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                  item.completed ? 'bg-bc-green-100 text-bc-green-700' : 'bg-gray-100 text-gray-400'
-                }`}
-              >
-                {item.completed ? <FaCheckCircle className="w-5 h-5" /> : <span className="text-sm">{idx + 1}</span>}
-              </div>
-              <span className={item.completed ? 'text-gray-900 font-medium' : 'text-gray-500'}>{item.step}</span>
-              {item.notes && <span className="text-xs text-gray-400">({item.notes})</span>}
-            </div>
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Left Navigation Tabs */}
+        <div className="md:w-64 shrink-0 space-y-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-sm font-bold transition-all ${
+                activeTab === tab.id 
+                  ? 'bg-bc-green-600 text-white shadow-lg shadow-bc-green/20'
+                  : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
+              }`}
+            >
+              <tab.icon className="w-5 h-5 ml-[-4px]" />
+              {tab.label}
+            </button>
           ))}
-        </div>
-      </section>
-
-      {/* Identity Verification Status */}
-      {(user?.aadhaarUploadedAt || user?.aadhaarNameMatch !== undefined) && (
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Identity Verification Status</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              {user?.aadhaarDocumentPath ? (
-                <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
-              ) : (
-                <FaTimesCircle className="w-5 h-5 text-gray-400" />
-              )}
-              <span>Aadhaar uploaded {user?.aadhaarDocumentPath ? '✔' : '—'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {user?.manualReview?.status === 'APPROVED' ? (
-                <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
-              ) : user?.aadhaarNameMatch === true ? (
-                <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
-              ) : user?.aadhaarNameMatch === false ? (
-                <FaTimesCircle className="w-5 h-5 text-red-500" />
-              ) : (
-                <span className="text-gray-400">—</span>
-              )}
-              <span>Name Match {user?.manualReview?.status === 'APPROVED' ? '✔ (Manual)' : user?.aadhaarNameMatch === true ? '✔' : user?.aadhaarNameMatch === false ? '❌' : '—'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {user?.manualReview?.status === 'APPROVED' ? (
-                <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
-              ) : user?.aadhaarDobMatch === true ? (
-                <FaCheckCircle className="w-5 h-5 text-bc-green-600" />
-              ) : user?.aadhaarDobMatch === false ? (
-                <FaTimesCircle className="w-5 h-5 text-red-500" />
-              ) : (
-                <span className="text-gray-400">—</span>
-              )}
-              <span>DOB Match {user?.manualReview?.status === 'APPROVED' ? '✔ (Manual)' : user?.aadhaarDobMatch === true ? '✔' : user?.aadhaarDobMatch === false ? '❌' : '—'}</span>
-            </div>
-            <div>
-              <span
-                className={`inline-block px-3 py-1 rounded text-sm font-medium ${
-                  user?.identityVerifiedAt ? 'bg-bc-green-100 text-bc-green-800' : 'bg-amber-100 text-amber-800'
-                }`}
-              >
-                {user?.identityVerifiedAt ? 'Identity Verified ✔' : 'Identity Pending'}
-              </span>
-            </div>
+          
+          <div className="mt-8 p-6 bg-bc-green-50 rounded-3xl border border-bc-green-100">
+            <h4 className="text-[10px] font-black text-bc-green-700 uppercase tracking-widest mb-1">Registry Handle</h4>
+            <p className="font-mono text-xs font-bold text-bc-green-800 break-all">{user?.referenceId || 'GENERATING...'}</p>
           </div>
-        </section>
-      )}
-
-      {message.text && (
-        <div
-          className={`p-4 rounded-lg mb-6 ${
-            message.type === 'success' ? 'bg-bc-green-50 text-bc-green-800' : 'bg-red-50 text-red-800'
-          }`}
-        >
-          {message.text}
         </div>
-      )}
 
-      {user?.referenceId && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-amber-800">
-            <strong>Reference ID:</strong> {user.referenceId}
-          </p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Section 1 - Personal Details */}
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Details</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth <span className="text-red-500">*</span></label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={form.dateOfBirth}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-red-500">*</span></label>
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                name="address"
-                value={form.address}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-              <input
-                type="text"
-                name="state"
-                value={form.state}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
-              <input
-                type="text"
-                name="district"
-                value={form.district}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Wallet address - for receiving BCC tokens */}
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Wallet Address (Carbon Credits)</h2>
-          <p className="text-sm text-gray-600 mb-3">
-            Add your Polygon-compatible wallet address (e.g. MetaMask) to receive Blue Carbon Credit (BCC) tokens after NCCR approval.
-          </p>
-          <input
-            type="text"
-            name="walletAddress"
-            value={form.walletAddress}
-            onChange={handleChange}
-            placeholder="0x..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-          />
-        </section>
-
-        {/* Section 2 - Aadhaar Upload */}
-        {needsAadhaar && (
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Aadhaar Card <span className="text-red-500">*</span></h2>
-            <p className="text-sm text-gray-600 mb-2">Upload Aadhaar (PDF, JPG or PNG, max 5MB). Name and DOB will be verified.</p>
-            <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded mb-3">
-              Tip: Use a PDF with selectable text (e.g. from UIDAI/e-Aadhaar) or a clear photo. Scanned/image-only PDFs go for manual verification.
-            </p>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)}
-                className="hidden"
-                id="aadhaar-upload"
-              />
-              <label htmlFor="aadhaar-upload" className="cursor-pointer flex flex-col items-center gap-2">
-                <FaCloudUploadAlt className="w-10 h-10 text-gray-400" />
-                <span className="text-sm text-gray-600">
-                  {aadhaarFile ? aadhaarFile.name : 'Click to select Aadhaar document'}
-                </span>
-              </label>
-            </div>
-          </section>
-        )}
-
-        {/* Section 3 - Land Document (after identity verified) */}
-        {needsLand && (
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Land Ownership Proof <span className="text-red-500">*</span></h2>
-            <p className="text-sm text-gray-600 mb-3">Upload land ownership document (PDF, JPG or PNG, max 5MB).</p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Land area (hectares, optional)</label>
-              <input
-                type="number"
-                name="landAreaHectares"
-                value={form.landAreaHectares}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                placeholder="e.g. 1.5"
-                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">Used to validate plantation area does not exceed registered land.</p>
-            </div>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => setLandFile(e.target.files?.[0] || null)}
-                className="hidden"
-                id="land-upload"
-              />
-              <label htmlFor="land-upload" className="cursor-pointer flex flex-col items-center gap-2">
-                <FaCloudUploadAlt className="w-10 h-10 text-gray-400" />
-                <span className="text-sm text-gray-600">
-                  {landFile ? landFile.name : 'Click to select land document'}
-                </span>
-              </label>
-            </div>
-            <button
-              type="button"
-              onClick={handleLandUpload}
-              disabled={loading || !landFile}
-              className="px-4 py-2 bg-bc-green-600 text-white rounded-lg font-medium hover:bg-bc-green-700 disabled:opacity-50"
+        {/* Dynamic Content Area */}
+        <div className="flex-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-[500px]"
             >
-              Upload Land Document
-            </button>
-          </section>
-        )}
+              {activeTab === 'overview' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Account Overview</h2>
+                    <p className="text-gray-500 font-medium text-sm">Monitor your verification progress and account integrity status.</p>
+                  </div>
 
-        {/* Organization Details */}
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Organization (if applicable)</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">NGO Name</label>
-              <input
-                type="text"
-                name="ngoName"
-                value={form.ngoName}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
-              <input
-                type="text"
-                name="ngoRegistrationNumber"
-                value={form.ngoRegistrationNumber}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-              />
-            </div>
-          </div>
-        </section>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Verification Status</p>
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-2xl ${user?.accountStatus === 'ACTIVE' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                          {user?.accountStatus === 'ACTIVE' ? <FaCheckCircle className="w-6 h-6" /> : <FaInfoCircle className="w-6 h-6" />}
+                        </div>
+                        <div>
+                          <p className="text-lg font-black text-gray-900 leading-tight">{user?.accountStatus?.replace(/_/g, ' ')}</p>
+                          <p className="text-xs text-gray-500 font-medium">Updated on {new Date(user?.updatedAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    </div>
 
-        {/* Land Ownership Type */}
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Land Ownership Type</h2>
-          <select
-            name="ownershipType"
-            value={form.ownershipType}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
-          >
-            <option value="">Select</option>
-            <option value="private">Private</option>
-            <option value="community">Community</option>
-          </select>
-        </section>
+                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Blockchain Wallet</p>
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+                          <FaWallet className="w-6 h-6" />
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-sm font-black text-gray-900 truncate">{user?.walletAddress || 'NOT LINKED'}</p>
+                          <p className="text-xs text-gray-500 font-medium">BCC Token Destination</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-        {/* Declaration */}
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Declaration</h2>
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              name="declarationAccepted"
-              checked={form.declarationAccepted}
-              onChange={handleChange}
-              className="mt-1 w-4 h-4 rounded border-gray-300 text-bc-green-600 focus:ring-bc-green-500"
-            />
-            <span className="text-sm text-gray-700">
-              I confirm that the information provided is accurate and I agree to the terms of CarbonSetu.
-            </span>
-          </label>
-        </section>
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Verification Timeline</h3>
+                    <div className="space-y-6 relative ml-4 border-l-2 border-gray-100 pl-8 py-2">
+                       {timeline.map((item, idx) => (
+                         <div key={idx} className="relative">
+                            <div className={`absolute -left-[41px] top-0 w-5 h-5 rounded-full border-4 border-white shadow-sm flex items-center justify-center ${item.completed ? 'bg-bc-green-500 text-white' : 'bg-gray-200'}`}>
+                               {item.completed && <FaCheckCircle className="w-2 h-2" />}
+                            </div>
+                            <div>
+                               <h4 className={`text-sm font-black ${item.completed ? 'text-gray-900' : 'text-gray-400'}`}>{item.step}</h4>
+                               {item.completedAt && <p className="text-[10px] text-gray-400 font-bold">{new Date(item.completedAt).toLocaleDateString()}</p>}
+                               {item.notes && <p className="text-xs text-gray-500 mt-1 font-medium">{item.notes}</p>}
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-        {(needsAadhaar || user?.accountStatus === ACCOUNT_STATUS.ACTIVE) && (
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={
-                loading ||
-                !form.declarationAccepted ||
-                (needsAadhaar && !aadhaarFile)
-              }
-              className="px-6 py-2.5 bg-bc-green-600 text-white rounded-lg font-medium hover:bg-bc-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading
-                ? 'Saving...'
-                : user?.accountStatus === ACCOUNT_STATUS.ACTIVE
-                ? 'Update Profile'
-                : 'Submit for Identity Verification'}
-            </button>
-          </div>
-        )}
-      </form>
+              {activeTab === 'personal' && (
+                <form onSubmit={handleUpdateProfile} className="space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Personal Details</h2>
+                    <p className="text-gray-500 font-medium text-sm">Manage your personal identification and contact information.</p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Legal Name</label>
+                      <input 
+                        type="text" name="name" value={form.name} onChange={handleChange} 
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Date of Birth</label>
+                      <input 
+                        type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} 
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mobile Number</label>
+                      <input 
+                        type="tel" name="phone" value={form.phone} onChange={handleChange} 
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">District / Region</label>
+                      <input 
+                        type="text" name="district" value={form.district} onChange={handleChange} 
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Postal Address</label>
+                      <textarea 
+                        name="address" value={form.address} onChange={handleChange} 
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-medium text-sm h-32 resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {user?.role === 'ngo' && (
+                    <div className="pt-8 border-t border-gray-50 grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NGO Legal Name</label>
+                        <input 
+                          type="text" name="ngoName" value={form.ngoName} onChange={handleChange} 
+                          className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NGO Registration ID</label>
+                        <input 
+                          type="text" name="ngoRegistrationNumber" value={form.ngoRegistrationNumber} onChange={handleChange} 
+                          className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-6">
+                    <button 
+                      type="submit" disabled={loading}
+                      className="px-8 py-3 bg-gray-900 text-white rounded-2xl text-sm font-black hover:bg-black transition-all shadow-xl shadow-gray-200 active:scale-95 disabled:opacity-50"
+                    >
+                      {loading ? 'Synchronizing...' : 'Save Profile Changes'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {activeTab === 'kyc' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Identity Verification</h2>
+                    <p className="text-gray-500 font-medium text-sm">Upload official government documents to verify your account.</p>
+                  </div>
+
+                  {user?.identityVerifiedAt ? (
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 flex items-center gap-6">
+                       <div className="p-4 bg-white rounded-2xl text-emerald-600 shadow-sm">
+                          <FaCheckCircle className="w-8 h-8" />
+                       </div>
+                       <div>
+                          <h4 className="text-lg font-black text-emerald-900">Identity Verified</h4>
+                          <p className="text-emerald-700 font-medium text-sm">Your government ID has been authenticated and linked to your registry handle.</p>
+                       </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSubmitKYC} className="space-y-6">
+                      <div className="p-8 border-2 border-dashed border-gray-100 rounded-3xl text-center bg-gray-50/50">
+                        <input 
+                          type="file" id="aadhaar-upload" className="hidden" 
+                          onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)}
+                        />
+                        <label htmlFor="aadhaar-upload" className="cursor-pointer group">
+                          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                            <FaCloudUploadAlt className="w-8 h-8 text-bc-green-500" />
+                          </div>
+                          <p className="text-sm font-black text-gray-900">{aadhaarFile ? aadhaarFile.name : 'Select Identity Document'}</p>
+                          <p className="text-xs text-gray-500 mt-1 font-medium">PDF, JPG or PNG (Max 5MB)</p>
+                        </label>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="flex items-start gap-4 cursor-pointer p-4 hover:bg-gray-50 rounded-2xl transition-colors">
+                          <input 
+                            type="checkbox" name="declarationAccepted" checked={form.declarationAccepted} 
+                            onChange={handleChange} required
+                            className="mt-1 w-5 h-5 rounded-lg border-gray-200 text-bc-green-600 focus:ring-bc-green-500" 
+                          />
+                          <span className="text-xs text-gray-600 font-medium leading-relaxed">
+                            I solemnly declare that the uploaded document represents my legal identity. I understand that any discrepancy in name or DOB will result in manual review by NCCR officials.
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="flex justify-center flex-col items-center gap-4">
+                        <button 
+                          type="submit" disabled={loading || !form.declarationAccepted || (!aadhaarFile && !user?.aadhaarDocumentPath)}
+                          className="w-full max-w-xs py-4 bg-bc-green-600 text-white rounded-2xl text-sm font-black hover:bg-bc-green-700 shadow-xl shadow-bc-green/20 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {loading ? 'Extracting Data...' : 'Submit Identity Document'}
+                        </button>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">Encryption: 256-bit SSL secured transmission</p>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'assets' && (
+                <div className="space-y-12">
+                   {/* Wallet Section */}
+                   <section className="space-y-6">
+                      <div>
+                        <h2 className="text-2xl font-black text-gray-900 mb-2">Blockchain Wallet</h2>
+                        <p className="text-gray-500 font-medium text-sm">Configure your digital vault for receiving carbon credit tokens.</p>
+                      </div>
+
+                      <div className="p-6 bg-gradient-to-br from-gray-900 to-black rounded-3xl text-white shadow-2xl">
+                         <div className="flex justify-between items-start mb-12">
+                            <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
+                               <FaWallet className="w-6 h-6 text-bc-green-400" />
+                            </div>
+                            <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] pt-2">Active Network: Polygon</span>
+                         </div>
+                         <div className="space-y-1">
+                            <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">Public Wallet Address</p>
+                            <input 
+                               type="text" name="walletAddress" value={form.walletAddress} onChange={handleChange}
+                               placeholder="0x..."
+                               className="w-full bg-transparent p-0 border-none outline-none font-mono text-lg font-bold placeholder:text-white/20 focus:ring-0"
+                            />
+                         </div>
+                         <button 
+                            onClick={() => handleUpdateProfile()}
+                            className="mt-8 text-xs font-black text-bc-green-400 hover:text-bc-green-300 transition-colors uppercase tracking-widest"
+                         >
+                            Update Linkage →
+                         </button>
+                      </div>
+                   </section>
+
+                   {/* Land Assets Section */}
+                   <section className="space-y-6 pt-12 border-t border-gray-50">
+                      <div>
+                        <h2 className="text-2xl font-black text-gray-900 mb-2">Land Assets</h2>
+                        <p className="text-gray-500 font-medium text-sm">Registered land parcels approved for sequestration projects.</p>
+                      </div>
+
+                      {user?.accountStatus === ACCOUNT_STATUS.ACTIVE || user?.landDocumentPath ? (
+                        <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 flex items-center justify-between">
+                           <div className="flex items-center gap-6">
+                              <div className="p-4 bg-white rounded-2xl text-emerald-600 shadow-sm border border-emerald-50">
+                                 <FaMapMarkedAlt className="w-8 h-8" />
+                              </div>
+                              <div>
+                                 <h4 className="text-lg font-black text-emerald-900">Land Verified</h4>
+                                 <p className="text-emerald-700 font-medium text-sm">Project capacity: {user?.landAreaHectares || '---'} Hectares</p>
+                              </div>
+                           </div>
+                           <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-3 py-1 rounded shadow-sm">AUTHENTICATED</span>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleLandUpload} className="space-y-6">
+                           <div className="grid md:grid-cols-2 gap-6">
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Total Ownership Area (Ha)</label>
+                                <input 
+                                  type="number" name="landAreaHectares" value={form.landAreaHectares} onChange={handleChange} step="0.01"
+                                  className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm"
+                                  placeholder="e.g. 1.25"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Ownership Rights</label>
+                                <select 
+                                  name="ownershipType" value={form.ownershipType} onChange={handleChange}
+                                  className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm"
+                                >
+                                   <option value="">Select Rights</option>
+                                   <option value="private">Private Lease / Title</option>
+                                   <option value="community">Community Management</option>
+                                </select>
+                              </div>
+                           </div>
+
+                           <div className="p-8 border-2 border-dashed border-gray-100 rounded-3xl text-center bg-gray-50/50">
+                            <input 
+                              type="file" id="land-upload" className="hidden" 
+                              onChange={(e) => setLandFile(e.target.files?.[0] || null)}
+                            />
+                            <label htmlFor="land-upload" className="cursor-pointer group">
+                              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                                <FaCloudUploadAlt className="w-8 h-8 text-bc-green-500" />
+                              </div>
+                              <p className="text-sm font-black text-gray-900">{landFile ? landFile.name : 'Select Land Title / Document'}</p>
+                              <p className="text-xs text-gray-500 mt-1 font-medium">Digital copy of official records (Max 5MB)</p>
+                            </label>
+                           </div>
+
+                           <div className="flex justify-center">
+                              <button 
+                                type="submit" disabled={loading || !landFile}
+                                className="w-full max-w-xs py-4 bg-gray-900 text-white rounded-2xl text-sm font-black hover:bg-black shadow-xl transition-all active:scale-95 disabled:opacity-50"
+                              >
+                                {loading ? 'Uploading Data...' : 'Submit Asset Proof'}
+                              </button>
+                           </div>
+                        </form>
+                      )}
+                   </section>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 };

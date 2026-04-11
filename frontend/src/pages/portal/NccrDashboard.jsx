@@ -8,6 +8,7 @@ import {
   getPanchayats,
   getAdminUsers,
   createPanchayat,
+  deleteAdminUser,
 } from '../../services/api';
 import {
   FaLandmark,
@@ -16,6 +17,7 @@ import {
   FaPlus,
   FaUserTag,
   FaMicroscope,
+  FaTrash,
 } from 'react-icons/fa';
 import MrvDataModal from '../../components/portal/MrvDataModal';
 import toast from 'react-hot-toast';
@@ -108,6 +110,19 @@ const NccrDashboard = () => {
       toast.error(e.response?.data?.message || 'Failed to onboard');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteUser = async (id, name, role) => {
+    if (!window.confirm(`Are you sure you want to PERMANENTLY delete ${role} "${name}"? This action cannot be undone.`)) return;
+    try {
+      const res = await deleteAdminUser(id);
+      if (res.success) {
+        toast.success(res.message);
+        load();
+      } else toast.error(res.message || 'Deletion failed');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Deletion failed');
     }
   };
 
@@ -274,11 +289,12 @@ const NccrDashboard = () => {
                     <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Jurisdiction</th>
                     <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Public ID</th>
                     <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                    <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {panchayats.map(pan => (
-                    <tr key={pan._id} className="hover:bg-gray-50/30 transition-colors">
+                    <tr key={pan._id} className="hover:bg-gray-50/30 transition-colors group">
                       <td className="px-8 py-4">
                         <p className="font-bold text-gray-900">{pan.name}</p>
                         <p className="text-xs text-gray-500">{pan.email}</p>
@@ -291,6 +307,15 @@ const NccrDashboard = () => {
                       </td>
                       <td className="px-8 py-4">
                         <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-[10px] font-bold">ACTIVE</span>
+                      </td>
+                      <td className="px-8 py-4 text-right">
+                        <button 
+                          onClick={() => handleDeleteUser(pan._id, pan.name, 'Panchayat Officer')}
+                          className="p-2 text-gray-300 hover:text-red-600 transition-colors"
+                          title="Remove Panchayat Official"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -322,8 +347,17 @@ const NccrDashboard = () => {
                   <div className="w-12 h-12 bg-bc-green-50 rounded-2xl flex items-center justify-center text-bc-green-600 font-black text-lg">
                     {u.name.charAt(0)}
                   </div>
-                  <div>
-                    <h5 className="font-black text-gray-900 leading-tight">{u.name}</h5>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <h5 className="font-black text-gray-900 leading-tight">{u.name}</h5>
+                      <button 
+                        onClick={() => handleDeleteUser(u._id, u.name, 'Citizen')}
+                        className="p-1 -mr-2 text-gray-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        title="Delete Citizen Profile"
+                      >
+                        <FaTrash className="w-3 h-3" />
+                      </button>
+                    </div>
                     <p className="text-xs text-gray-500 font-medium">{u.email}</p>
                     <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                       <span>{u.district}</span>

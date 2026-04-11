@@ -150,6 +150,7 @@ export const getAdminUsers = (params) => api.get('/admin/users', { params }).the
 export const createPanchayat = (payload) => api.post('/admin/panchayats', payload).then((r) => r.data);
 export const makeUserPanchayat = (userId, payload) =>
   api.patch(`/admin/users/${userId}/make-panchayat`, payload).then((r) => r.data);
+export const deleteAdminUser = (userId) => api.delete(`/admin/users/${userId}`).then((r) => r.data);
 
 // Public species
 export const getSpecies = () => api.get('/public/species').then((r) => r.data);
