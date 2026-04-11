@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { completeRegistration } from '../services/api';
-import { FaUser, FaLock, FaEye, FaEyeSlash, FaCheckCircle } from 'react-icons/fa';
+import { FaUser, FaLock, FaEye, FaEyeSlash, FaCheckCircle, FaLink } from 'react-icons/fa';
 
 const CompleteRegistration = () => {
   const [name, setName] = useState('');

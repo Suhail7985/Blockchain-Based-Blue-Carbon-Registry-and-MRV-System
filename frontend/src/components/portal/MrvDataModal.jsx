@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaShieldAlt, FaSave, FaSatellite, FaMicroscope, FaClipboardCheck } from 'react-icons/fa';
+import { FaTimes, FaSave, FaSatellite, FaMicroscope, FaClipboardCheck, FaLeaf } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
