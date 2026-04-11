@@ -325,7 +325,7 @@ const PortalLayout = () => {
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value)}
-              className="hidden sm:block text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-bc-green-500"
+              className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-bc-green-500"
             >
               {languages.map((l) => (
                 <option key={l.code} value={l.code}>
@@ -333,7 +333,7 @@ const PortalLayout = () => {
                 </option>
               ))}
             </select>
-            <div className="hidden sm:block text-right">
+            <div className="text-right ml-2 hidden sm:block">
                <p className="text-sm font-bold text-gray-900 leading-tight">{user?.name}</p>
                <p className="text-xs text-gray-500 font-medium">{user?.role === 'admin' ? t('intelligenceLab') : user?.role}</p>
             </div>
