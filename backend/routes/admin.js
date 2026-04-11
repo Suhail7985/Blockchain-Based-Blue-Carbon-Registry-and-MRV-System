@@ -422,6 +422,23 @@ router.get('/panchayats', async (req, res) => {
   }
 });
 
+// List all registered Users (Citizens)
+router.get('/users', async (req, res) => {
+  try {
+    const { role = 'citizen', accountStatus } = req.query;
+    const query = { role };
+    if (accountStatus) query.accountStatus = accountStatus;
+
+    const users = await User.find(query)
+      .select('name email phone district state role accountStatus referenceId isVerified createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ success: true, users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Update Panchayat status (ACTIVE/SUSPENDED)
 router.patch('/panchayats/:id/status', async (req, res) => {
   try {
@@ -523,15 +540,36 @@ router.get('/plantations', async (req, res) => {
 
 router.get('/audit-logs', async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
-    const logs = await AuditLog.find({})
-      .sort({ timestamp: -1 })
-      .limit(limit)
-      .populate('performedBy', 'name email role')
-      .populate('plantationId', 'plantationId')
-      .lean();
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const skip = (page - 1) * limit;
 
-    res.json({ success: true, logs });
+    const { action, role } = req.query;
+    const query = {};
+    if (action) query.action = action;
+    if (role) query.role = role;
+
+    const [logs, total] = await Promise.all([
+      AuditLog.find(query)
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('performedBy', 'name email role')
+        .populate('plantationId', 'plantationId')
+        .lean(),
+      AuditLog.countDocuments(query),
+    ]);
+
+    res.json({
+      success: true,
+      logs,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        hasMore: total > skip + logs.length,
+      },
+    });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }

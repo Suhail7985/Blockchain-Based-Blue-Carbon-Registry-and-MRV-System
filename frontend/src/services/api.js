@@ -135,17 +135,18 @@ export const getAdminPlantations = (status) =>
   api.get('/admin/plantations', { params: status ? { status } : {} }).then((r) => r.data);
 export const nccrApprovePlantation = (id, notes) =>
   api.patch(`/admin/plantations/${id}/approve`, { notes }).then((r) => r.data);
+export const nccrApproveFinal = (id) => api.patch(`/admin/plantations/${id}/approve`).then((r) => r.data);
 export const nccrRejectPlantation = (id, notes) =>
   api.patch(`/admin/plantations/${id}/reject`, { notes }).then((r) => r.data);
 
 export const getAdminStats = () => api.get('/admin/stats').then((r) => r.data);
 export const getAdminAnalytics = () => api.get('/admin/analytics').then((r) => r.data);
-export const getAuditLogs = (limit = 50) =>
-  api.get('/admin/audit-logs', { params: { limit } }).then((r) => r.data);
+export const getAuditLogs = (params) => api.get('/admin/audit-logs', { params }).then((r) => r.data);
 export const getCarbonSettings = () => api.get('/admin/settings/carbon').then((r) => r.data);
 export const updateCarbonSettings = (payload) =>
   api.put('/admin/settings/carbon', payload).then((r) => r.data);
 export const getPanchayats = () => api.get('/admin/panchayats').then((r) => r.data);
+export const getAdminUsers = (params) => api.get('/admin/users', { params }).then((r) => r.data);
 export const createPanchayat = (payload) => api.post('/admin/panchayats', payload).then((r) => r.data);
 export const makeUserPanchayat = (userId, payload) =>
   api.patch(`/admin/users/${userId}/make-panchayat`, payload).then((r) => r.data);

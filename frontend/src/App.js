@@ -20,24 +20,25 @@ import PlantationSubmission from './pages/portal/PlantationSubmission';
 import CarbonCredits from './pages/portal/CarbonCredits';
 import BlockchainRecords from './pages/portal/BlockchainRecords';
 import Notifications from './pages/portal/Notifications';
-import PanchayatDashboard from './pages/portal/PanchayatDashboard';
-import NccrDashboard from './pages/portal/NccrDashboard';
-import NgoDashboard from './pages/portal/NgoDashboard';
-import CarbonLedger from './pages/portal/CarbonLedger';
+import IntegrityExplorer from './pages/IntegrityExplorer';
 import MyPlantations from './pages/MyPlantations';
 import NationalImpactDashboard from './pages/portal/NationalImpactDashboard';
 import PlantationGIS from './pages/portal/PlantationGIS';
 import HealthMonitoring from './pages/portal/HealthMonitoring';
 import AdvancedAnalysis from './pages/portal/AdvancedAnalysis';
 import CorporateDashboard from './pages/portal/CorporateDashboard';
-import IntegrityExplorer from './pages/IntegrityExplorer';
+import PanchayatDashboard from './pages/portal/PanchayatDashboard';
+import NccrDashboard from './pages/portal/NccrDashboard';
+import AdminDashboard from './pages/portal/AdminDashboard';
+import NgoDashboard from './pages/portal/NgoDashboard';
+import CarbonLedger from './pages/portal/CarbonLedger';
 import './App.css';
 
 function PortalIndex() {
   const { user } = useAuth();
   if (user?.role === 'panchayat') return <Navigate to="/portal/panchayat" replace />;
   if (user?.role === 'ngo') return <Navigate to="/portal/ngo" replace />;
-  if (user && (user.role === 'admin' || user.role === 'verifier')) return <Navigate to="/portal/nccr" replace />;
+  if (user && (user.role === 'admin' || user.role === 'verifier')) return <AdminDashboard />;
   return <PortalDashboard />;
 }
 
