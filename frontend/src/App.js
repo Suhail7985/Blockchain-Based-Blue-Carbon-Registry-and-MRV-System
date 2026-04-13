@@ -19,7 +19,6 @@ import LandRegistration from './pages/portal/LandRegistration';
 import PlantationSubmission from './pages/portal/PlantationSubmission';
 import CarbonCredits from './pages/portal/CarbonCredits';
 import BlockchainRecords from './pages/portal/BlockchainRecords';
-import Notifications from './pages/portal/Notifications';
 import IntegrityExplorer from './pages/IntegrityExplorer';
 import MyPlantations from './pages/MyPlantations';
 import NationalImpactDashboard from './pages/portal/NationalImpactDashboard';
@@ -83,7 +82,6 @@ function App() {
                 <Route path="carbon" element={<CarbonCredits />} />
                 <Route path="blockchain" element={<BlockchainRecords />} />
                 <Route path="ledger" element={<CarbonLedger />} />
-                <Route path="notifications" element={<Notifications />} />
                 <Route path="panchayat" element={<PanchayatDashboard />} />
                 <Route path="nccr" element={<NccrDashboard />} />
                 <Route path="ngo" element={<NgoDashboard />} />

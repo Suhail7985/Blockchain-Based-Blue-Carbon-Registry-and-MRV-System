@@ -8,7 +8,7 @@ import {
   FaSeedling,
   FaCoins,
   FaLink,
-  FaBell,
+  FaFileInvoice,
   FaSignOutAlt,
   FaBars,
   FaTimes,
@@ -38,7 +38,7 @@ const navItems = [
   { path: '/portal/health', icon: FaHeartbeat, label: 'Health Monitoring' },
   { path: '/portal/carbon', icon: FaCoins, label: 'Carbon Credits' },
   { path: '/portal/blockchain', icon: FaLink, label: 'Blockchain Records' },
-  { path: '/portal/notifications', icon: FaBell, label: 'Notifications' },
+  { path: '/portal/ledger', icon: FaFileInvoice, label: 'Carbon Ledger' },
 ];
 
 const panchayatNav = { path: '/portal/panchayat', icon: FaLandmark, label: 'Panchayat Verification', roles: ['panchayat'] };
