@@ -129,11 +129,20 @@ const PlantationSubmission = () => {
         toast.success('GPS coordinates captured');
         setGpsLoading(false);
       },
-      () => {
-        toast.error('Could not get location. Check permissions or enter manually.');
+      (err) => {
+        console.warn("Geolocation error:", err);
+        let errorMsg = 'Could not get location. Check permissions or enter manually.';
+        if (err.code === 1) {
+          errorMsg = 'Location permission denied. Please allow location access near the URL bar.';
+        } else if (err.code === 2) {
+          errorMsg = 'Location is unavailable. Ensure device location services are enabled.';
+        } else if (err.code === 3) {
+          errorMsg = 'Location request timed out. Please try again.';
+        }
+        toast.error(errorMsg);
         setGpsLoading(false);
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
