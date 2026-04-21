@@ -57,20 +57,50 @@ const PanchayatDashboard = () => {
   const [showLandApproveModal, setShowLandApproveModal] = useState(false);
   const [showLandRejectModal, setShowLandRejectModal] = useState(false);
   const [selectedLandUserId, setSelectedLandUserId] = useState(null);
+  const [dbStats, setDbStats] = useState({ total: 0, collection: 'unknown', db: 'unknown' });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [pRes, kycRes, landRes] = await Promise.all([
-        getPanchayatPlantations(),
-        getPanchayatManualKyc(),
-        getPanchayatPendingLand()
-      ]);
-      if (pRes.success) setPlantations(pRes.plantations || []);
+      let pRes = { success: false, plantations: [] };
+      let kycRes = { success: false, users: [] };
+      let landRes = { success: false, users: [] };
+
+      try {
+        pRes = await getPanchayatPlantations();
+      } catch (err) {
+        console.error('getPanchayatPlantations failed:', err);
+      }
+
+      try {
+        kycRes = await getPanchayatManualKyc();
+      } catch (err) {
+        console.error('getPanchayatManualKyc failed:', err);
+      }
+
+      try {
+        landRes = await getPanchayatPendingLand();
+      } catch (err) {
+        console.error('getPanchayatPendingLand failed:', err);
+      }
+      if (pRes.success) {
+        setPlantations(pRes.plantations || []);
+        if (pRes.debug) setDbStats({ 
+          total: pRes.debug.totalPlantationsInDb,
+          collection: pRes.debug.collectionName,
+          db: pRes.debug.dbName
+        });
+      }
       if (kycRes.success) setManualKyc(kycRes.users || []);
       if (landRes.success) setPendingLand(landRes.users || []);
     } catch (e) {
-      toast.error('Failed to load dashboard data');
+      console.error('Dashboard load error details:', {
+        message: e.message,
+        response: e.response?.data,
+        status: e.response?.status,
+        url: e.config?.url
+      });
+      toast.error(`Failed to load dashboard: ${e.response?.data?.message || e.message}`);
     } finally {
       setLoading(false);
     }
@@ -181,13 +211,18 @@ const PanchayatDashboard = () => {
   const rejectedCount = plantations.filter(p => p.status === 'REJECTED').length;
   const totalCarbonInfo = plantations
     .filter(p => p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED')
-    .reduce((acc, p) => acc + (p.carbonCalculation?.co2eq || 0), 0);
+    .reduce((acc, p) => acc + (Number(p.carbonCalculation?.co2eq) || 0), 0);
 
   // Map center calculation (average of all plantation coords, or India default)
-  const mapCenter = plantations.filter(p => p.latitude && p.longitude).length > 0 
+  const validCoords = plantations.filter(p => 
+    p.latitude && !isNaN(parseFloat(p.latitude)) && 
+    p.longitude && !isNaN(parseFloat(p.longitude))
+  );
+
+  const mapCenter = validCoords.length > 0 
     ? [
-        plantations.reduce((acc, p) => acc + parseFloat(p.latitude || 0), 0) / plantations.filter(p => p.latitude).length,
-        plantations.reduce((acc, p) => acc + parseFloat(p.longitude || 0), 0) / plantations.filter(p => p.longitude).length
+        validCoords.reduce((acc, p) => acc + parseFloat(p.latitude), 0) / validCoords.length,
+        validCoords.reduce((acc, p) => acc + parseFloat(p.longitude), 0) / validCoords.length
       ]
     : [20.5937, 78.9629];
 
@@ -201,7 +236,9 @@ const PanchayatDashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900">CarbonSetu: Local Panchayat Dashboard</h1>
           <div className="flex items-center gap-2 mt-1 text-bc-green-700">
              <FaLandmark className="w-4 h-4" />
-             <span className="text-sm font-semibold uppercase tracking-wider">Jurisdiction: {user?.district}, {user?.state}</span>
+             <span className="text-sm font-semibold uppercase tracking-wider">
+               Jurisdiction: {user?.panchayatName ? `${user.panchayatName}, ` : ''}{user?.district}, {user?.state}
+             </span>
           </div>
         </div>
         <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-200">
@@ -263,7 +300,7 @@ const PanchayatDashboard = () => {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {plantations.filter(p => p.latitude && p.longitude).map((p) => (
+            {validCoords.map((p) => (
               <Marker key={p._id} position={[parseFloat(p.latitude), parseFloat(p.longitude)]} icon={customIcon}>
                 <Popup className="custom-popup">
                   <div className="p-1">
@@ -537,7 +574,18 @@ const PanchayatDashboard = () => {
                 }).length === 0 && (
                   <tr>
                     <td colSpan={filterTab === 'PENDING_PANCHAYAT' ? 7 : 6} className="px-6 py-12 text-center text-gray-500">
-                      No plantations found in this category.
+                      <div className="flex flex-col items-center gap-2">
+                        <span>No plantations found in this category.</span>
+                        {/* Hidden debug info for the developer to see if needed */}
+                        <div className="mt-4 p-4 bg-gray-50 rounded text-xs text-left max-w-md overflow-auto border border-gray-100 font-mono">
+                          <p className="font-bold mb-1 border-b pb-1">System Debug Info:</p>
+                          <p>Total in Registry (Backend): {dbStats.total}</p>
+                          <p>Database: {dbStats.db}</p>
+                          <p>Collection Target: {dbStats.collection}</p>
+                          <p>Current Tab: {filterTab}</p>
+                          <p>Jurisdiction: {user?.district}, {user?.state}</p>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 )}

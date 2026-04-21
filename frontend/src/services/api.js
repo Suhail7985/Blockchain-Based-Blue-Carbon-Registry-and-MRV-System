@@ -1,9 +1,5 @@
 import axios from 'axios';
 
-// NGO - Plantations pending NCCR verification
-export const getNgoPendingNccrPlantations = () =>
-  api.get('/ngo/plantations/pending-nccr').then((r) => r.data);
-
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
@@ -42,11 +38,8 @@ api.interceptors.response.use(
       // Unauthorized - clear auth data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // Redirect to login only if not on a public page
-      const publicPaths = ['/', '/login', '/signup', '/verify-otp', '/complete-registration', '/forgot-password', '/transparency'];
-      const isPublicPath = publicPaths.includes(window.location.pathname) || window.location.pathname.startsWith('/reset-password');
-      
-      if (!isPublicPath) {
+      // Redirect to login if not already there
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
         window.location.href = '/login';
       }
     }
@@ -65,12 +58,11 @@ export const verifyOTP = async (email, otp) => {
   return response.data;
 };
 
-export const completeRegistration = async (email, name, password, walletAddress) => {
+export const completeRegistration = async (email, name, password) => {
   const response = await api.post('/auth/register', {
     email,
     name,
     password,
-    walletAddress,
   });
   return response.data;
 };
@@ -104,6 +96,7 @@ export const getVerifiedLands = () => api.get('/plantation/lands').then((r) => r
 export const registerLand = (formData) => api.post('/plantation/lands', formData).then((r) => r.data);
 export const getMyPlantations = () => api.get('/plantation').then((r) => r.data);
 export const submitPlantation = (formData) => api.post('/plantation', formData).then((r) => r.data);
+export const resubmitPlantation = (id, formData) => api.post(`/plantation/${id}/resubmit`, formData).then((r) => r.data);
 
 // Carbon
 export const getCarbonSummary = () => api.get('/carbon').then((r) => r.data);
@@ -123,6 +116,15 @@ export const panchayatApproveManualKyc = (userId, notes) =>
 export const panchayatRejectManualKyc = (userId, reason) =>
   api.patch(`/panchayat/kyc/${userId}/reject`, { reason }).then((r) => r.data);
 
+// Panchayat - Land verification queue
+export const getPanchayatPendingLand = () => api.get('/panchayat/land/pending').then((r) => r.data);
+export const panchayatApproveLand = (userId) => api.patch(`/panchayat/land/${userId}/approve`).then((r) => r.data);
+export const panchayatRejectLand = (userId, reason) => api.patch(`/panchayat/land/${userId}/reject`, { reason }).then((r) => r.data);
+
+// NGO
+export const getNgoPendingNccrPlantations = () =>
+  api.get('/ngo/plantations/pending-nccr').then((r) => r.data);
+
 // NGO - Manual KYC queue
 export const getNgoManualKyc = () => api.get('/ngo/kyc/manual-review').then((r) => r.data);
 export const ngoApproveManualKyc = (userId, notes) =>
@@ -135,36 +137,26 @@ export const getAdminPlantations = (status) =>
   api.get('/admin/plantations', { params: status ? { status } : {} }).then((r) => r.data);
 export const nccrApprovePlantation = (id, notes) =>
   api.patch(`/admin/plantations/${id}/approve`, { notes }).then((r) => r.data);
-export const nccrApproveFinal = (id) => api.patch(`/admin/plantations/${id}/approve`).then((r) => r.data);
 export const nccrRejectPlantation = (id, notes) =>
   api.patch(`/admin/plantations/${id}/reject`, { notes }).then((r) => r.data);
 
 export const getAdminStats = () => api.get('/admin/stats').then((r) => r.data);
 export const getAdminAnalytics = () => api.get('/admin/analytics').then((r) => r.data);
-export const getAuditLogs = (params) => api.get('/admin/audit-logs', { params }).then((r) => r.data);
+export const getAuditLogs = (limit = 50) =>
+  api.get('/admin/audit-logs', { params: { limit } }).then((r) => r.data);
 export const getCarbonSettings = () => api.get('/admin/settings/carbon').then((r) => r.data);
 export const updateCarbonSettings = (payload) =>
   api.put('/admin/settings/carbon', payload).then((r) => r.data);
 export const getPanchayats = () => api.get('/admin/panchayats').then((r) => r.data);
-export const getAdminUsers = (params) => api.get('/admin/users', { params }).then((r) => r.data);
 export const createPanchayat = (payload) => api.post('/admin/panchayats', payload).then((r) => r.data);
 export const makeUserPanchayat = (userId, payload) =>
   api.patch(`/admin/users/${userId}/make-panchayat`, payload).then((r) => r.data);
-export const deleteAdminUser = (userId) => api.delete(`/admin/users/${userId}`).then((r) => r.data);
-
-// Public species
-export const getSpecies = () => api.get('/public/species').then((r) => r.data);
-
-// Plantation Resubmit
-export const resubmitPlantation = (id, formData) => api.patch(`/plantation/${id}/resubmit`, formData).then((r) => r.data);
-
-// Panchayat Land Verification
-export const getPanchayatPendingLand = () => api.get('/panchayat/land/pending').then((r) => r.data);
-export const panchayatApproveLand = (userId) => api.patch(`/panchayat/land/${userId}/approve`).then((r) => r.data);
-export const panchayatRejectLand = (userId, reason) => api.patch(`/panchayat/land/${userId}/reject`, { reason }).then((r) => r.data);
 
 // Marketplace
 export const getMarketplaceListings = () => api.get('/marketplace/listings').then((r) => r.data);
 export const getMarketplaceStats = () => api.get('/marketplace/stats').then((r) => r.data);
+
+// Public
+export const getSpecies = () => api.get('/public/species').then((r) => r.data);
 
 export default api;
