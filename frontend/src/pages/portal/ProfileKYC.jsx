@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { indiaStatesData } from '../../utils/indiaData';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import StatusBanner from '../../components/portal/StatusBanner';
@@ -40,6 +41,7 @@ const ProfileKYC = () => {
     declarationAccepted: false,
     landAreaHectares: '',
     walletAddress: '',
+    zipCode: '',
   });
   const [aadhaarFile, setAadhaarFile] = useState(null);
   const [landFile, setLandFile] = useState(null);
@@ -59,16 +61,20 @@ const ProfileKYC = () => {
         declarationAccepted: user.declarationAccepted || false,
         landAreaHectares: user.landAreaHectares != null ? String(user.landAreaHectares) : '',
         walletAddress: user.walletAddress || '',
+        zipCode: user.zipCode || '',
       });
     }
   }, [user]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setForm((prev) => {
+      const updated = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      if (name === 'state') {
+        updated.district = ''; // Reset district when state changes
+      }
+      return updated;
+    });
   };
 
   const handleUpdateProfile = async (e) => {
@@ -108,6 +114,7 @@ const ProfileKYC = () => {
       fd.append('ngoRegistrationNumber', form.ngoRegistrationNumber);
       fd.append('ownershipType', form.ownershipType);
       fd.append('declarationAccepted', form.declarationAccepted);
+      if (form.zipCode) fd.append('zipCode', form.zipCode);
       if (form.walletAddress) fd.append('walletAddress', form.walletAddress);
       if (aadhaarFile) fd.append('aadhaar', aadhaarFile);
 
@@ -286,9 +293,33 @@ const ProfileKYC = () => {
                       />
                     </div>
                     <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">State</label>
+                      <select 
+                        name="state" value={form.state} onChange={handleChange} 
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm appearance-none"
+                      >
+                        <option value="">Select State</option>
+                        {Object.keys(indiaStatesData).sort().map(state => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">District / Region</label>
+                      <select 
+                        name="district" value={form.district} onChange={handleChange} disabled={!form.state}
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm appearance-none disabled:opacity-50"
+                      >
+                        <option value="">Select District</option>
+                        {form.state && indiaStatesData[form.state]?.sort().map(district => (
+                          <option key={district} value={district}>{district}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Postal / Zip Code</label>
                       <input 
-                        type="text" name="district" value={form.district} onChange={handleChange} 
+                        type="text" name="zipCode" value={form.zipCode} onChange={handleChange} 
                         className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-bc-green-500 outline-none font-bold text-sm"
                       />
                     </div>
