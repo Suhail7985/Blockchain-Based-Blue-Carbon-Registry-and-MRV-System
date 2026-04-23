@@ -372,7 +372,7 @@ const ProfileKYC = () => {
                             className="mt-1 w-5 h-5 rounded-lg border-gray-200 text-bc-green-600 focus:ring-bc-green-500" 
                           />
                           <span className="text-xs text-gray-600 font-medium leading-relaxed">
-                            I solemnly declare that the uploaded document represents my legal identity. I understand that any discrepancy in name or DOB will result in manual review by NCCR officials.
+                            I solemnly declare that the uploaded document represents my legal identity. I understand that any discrepancy in name or DOB will result in manual review by Panchayat officials.
                           </span>
                         </label>
                       </div>

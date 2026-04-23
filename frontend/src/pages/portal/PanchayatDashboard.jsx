@@ -540,15 +540,11 @@ const PanchayatDashboard = () => {
                           >
                             <FaDatabase className="w-3 h-3" /> Update Survival
                           </button>
-
                           <button
                             onClick={() => { setActionId(p._id); setShowApproveModal(true); }}
-                            className={`px-3 py-1.5 text-white text-xs font-bold rounded-lg shadow-sm transition-all w-full flex items-center justify-center gap-1 ${
-                              p.risk?.riskScore === 'LOW' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'
-                            }`}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all w-full flex items-center justify-center gap-1"
                           >
-                            <FaCheckCircle className="w-3 h-3" />
-                            {p.risk?.riskScore === 'LOW' ? 'Final Verify' : 'Approve & Escalate'}
+                            <FaCheckCircle className="w-3 h-3" /> Final Verify
                           </button>
                           
                           <button
@@ -576,15 +572,6 @@ const PanchayatDashboard = () => {
                     <td colSpan={filterTab === 'PENDING_PANCHAYAT' ? 7 : 6} className="px-6 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center gap-2">
                         <span>No plantations found in this category.</span>
-                        {/* Hidden debug info for the developer to see if needed */}
-                        <div className="mt-4 p-4 bg-gray-50 rounded text-xs text-left max-w-md overflow-auto border border-gray-100 font-mono">
-                          <p className="font-bold mb-1 border-b pb-1">System Debug Info:</p>
-                          <p>Total in Registry (Backend): {dbStats.total}</p>
-                          <p>Database: {dbStats.db}</p>
-                          <p>Collection Target: {dbStats.collection}</p>
-                          <p>Current Tab: {filterTab}</p>
-                          <p>Jurisdiction: {user?.district}, {user?.state}</p>
-                        </div>
                       </div>
                     </td>
                   </tr>

@@ -89,7 +89,7 @@ const BlockchainRecords = () => {
           </div>
           <p className="text-gray-600 mb-4 font-medium">No verified blockchain records found.</p>
           <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
-            Your records appear here after the mandatory multi-level verification flow is completed and signed on-chain.
+            Your records appear here after the mandatory verification flow is completed and signed on-chain.
           </p>
           <Link
             to="/portal/plantation"

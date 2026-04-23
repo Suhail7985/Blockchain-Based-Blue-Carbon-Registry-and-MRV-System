@@ -11,6 +11,7 @@ import { PLANTATION_STATUS } from '../constants/plantationStatus.js';
 import { ACCOUNT_STATUS } from '../constants/accountStatus.js';
 import { auditLog } from '../utils/auditLog.js';
 import { analyzePlantationsRisk } from '../utils/fraud.js';
+import { finalizePlantationApproval } from '../utils/verification.js';
 
 const router = express.Router();
 
@@ -93,36 +94,15 @@ router.patch('/plantations/:id/approve', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Plantation is not pending Panchayat approval.' });
     }
 
-    const previousStatus = plantation.status;
-    plantation.status = PLANTATION_STATUS.PENDING_NCCR;
-    plantation.panchayatVerification = {
-      panchayatId: req.user.id,
-      decision: 'approved',
-      timestamp: new Date(),
-      remarks: req.body.remarks || '',
-    };
-    plantation.auditLog = plantation.auditLog || [];
-    plantation.auditLog.push({ action: 'panchayat_approved', by: req.user.id, timestamp: new Date(), remarks: req.body.remarks });
-    await plantation.save();
-
-    auditLog('PANCHAYAT_APPROVE', req.user.id, 'plantation_approved', {
-      plantationId: plantation.plantationId,
-      plantationDbId: plantation._id,
-    });
-    await AuditLog.create({
-      plantationId: plantation._id,
-      action: 'panchayat_approved',
-      performedBy: req.user.id,
-      role: 'panchayat',
-      previousStatus,
-      newStatus: plantation.status,
-      details: { remarks: req.body.remarks || '' },
-    });
+    const notes = req.body.remarks || req.body.notes || 'Approved by Panchayat';
+    
+    // Call the unified verification utility to finalize (Carbon + Blockchain + Minting)
+    const updated = await finalizePlantationApproval(plantation._id, req.user.id, 'panchayat', notes);
 
     res.json({
       success: true,
-      message: 'Plantation approved. Sent to NCCR for final verification.',
-      plantation: plantation.toObject(),
+      message: 'Plantation approved and finalized. Carbon calculated and tokens minted.',
+      plantation: updated.toObject(),
     });
   } catch (e) {
     console.error('Error in PATCH /panchayat/plantations/:id/approve:', e);
