@@ -8,7 +8,7 @@ import {
   FaSeedling,
   FaCoins,
   FaLink,
-  FaBell,
+  FaFileInvoice,
   FaSignOutAlt,
   FaBars,
   FaTimes,
@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
 import { useTranslation, languages } from '../../contexts/LanguageContext';
+import NotificationBell from '../layout/NotificationBell';
 
 const navItems = [
   { path: '/', icon: FaHome, label: 'Home Page' },
@@ -38,7 +39,7 @@ const navItems = [
   { path: '/portal/health', icon: FaHeartbeat, label: 'Health Monitoring' },
   { path: '/portal/carbon', icon: FaCoins, label: 'Carbon Credits' },
   { path: '/portal/blockchain', icon: FaLink, label: 'Blockchain Records' },
-  { path: '/portal/notifications', icon: FaBell, label: 'Notifications' },
+  { path: '/portal/ledger', icon: FaFileInvoice, label: 'Carbon Ledger' },
 ];
 
 const panchayatNav = { path: '/portal/panchayat', icon: FaLandmark, label: 'Panchayat Verification', roles: ['panchayat'] };
@@ -321,7 +322,7 @@ const PortalLayout = () => {
             </h2>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value)}
@@ -333,7 +334,11 @@ const PortalLayout = () => {
                 </option>
               ))}
             </select>
-            <div className="text-right ml-2 hidden sm:block">
+
+            {/* Notification Bell */}
+            <NotificationBell />
+
+            <div className="text-right ml-1 hidden sm:block">
                <p className="text-sm font-bold text-gray-900 leading-tight">{user?.name}</p>
                <p className="text-xs text-gray-500 font-medium">{user?.role === 'admin' ? t('intelligenceLab') : user?.role}</p>
             </div>

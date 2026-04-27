@@ -58,15 +58,19 @@ const PanchayatDashboard = () => {
   const [showLandRejectModal, setShowLandRejectModal] = useState(false);
   const [selectedLandUserId, setSelectedLandUserId] = useState(null);
 
+  const [allPlantations, setAllPlantations] = useState([]);  // for stats
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [pRes, kycRes, landRes] = await Promise.all([
-        getPanchayatPlantations(),
+      const [pRes, allRes, kycRes, landRes] = await Promise.all([
+        getPanchayatPlantations(),         // pending only — action queue
+        getPanchayatPlantations('all'),    // all statuses — analytics/stats
         getPanchayatManualKyc(),
         getPanchayatPendingLand()
       ]);
       if (pRes.success) setPlantations(pRes.plantations || []);
+      if (allRes.success) setAllPlantations(allRes.plantations || []);
       if (kycRes.success) setManualKyc(kycRes.users || []);
       if (landRes.success) setPendingLand(landRes.users || []);
     } catch (e) {
@@ -175,19 +179,20 @@ const PanchayatDashboard = () => {
     return <Navigate to="/portal" replace />;
   }
 
-  // Analytics Calculations
-  const pendingCount = plantations.filter(p => p.status === 'PENDING_PANCHAYAT').length;
-  const approvedCount = plantations.filter(p => p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED').length;
-  const rejectedCount = plantations.filter(p => p.status === 'REJECTED').length;
-  const totalCarbonInfo = plantations
+  // Analytics — use allPlantations (all statuses) for accurate jurisdiction-wide stats
+  const pendingCount = allPlantations.filter(p => p.status === 'PENDING_PANCHAYAT').length;
+  const approvedCount = allPlantations.filter(p => p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED').length;
+  const rejectedCount = allPlantations.filter(p => p.status === 'REJECTED').length;
+  const totalCarbonInfo = allPlantations
     .filter(p => p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED')
     .reduce((acc, p) => acc + (p.carbonCalculation?.co2eq || 0), 0);
 
-  // Map center calculation (average of all plantation coords, or India default)
-  const mapCenter = plantations.filter(p => p.latitude && p.longitude).length > 0 
+  // Map center from ALL plantations that have GPS coords
+  const gpsPlantations = allPlantations.filter(p => p.latitude && p.longitude);
+  const mapCenter = gpsPlantations.length > 0
     ? [
-        plantations.reduce((acc, p) => acc + parseFloat(p.latitude || 0), 0) / plantations.filter(p => p.latitude).length,
-        plantations.reduce((acc, p) => acc + parseFloat(p.longitude || 0), 0) / plantations.filter(p => p.longitude).length
+        gpsPlantations.reduce((acc, p) => acc + parseFloat(p.latitude), 0) / gpsPlantations.length,
+        gpsPlantations.reduce((acc, p) => acc + parseFloat(p.longitude), 0) / gpsPlantations.length,
       ]
     : [20.5937, 78.9629];
 
@@ -258,12 +263,12 @@ const PanchayatDashboard = () => {
           </h2>
         </div>
         <div className="h-[400px] w-full relative z-0">
-          <MapContainer center={mapCenter} zoom={plantations.length > 0 ? 11 : 4} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+          <MapContainer center={mapCenter} zoom={gpsPlantations.length > 0 ? 11 : 4} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0 }}>
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {plantations.filter(p => p.latitude && p.longitude).map((p) => (
+            {gpsPlantations.map((p) => (
               <Marker key={p._id} position={[parseFloat(p.latitude), parseFloat(p.longitude)]} icon={customIcon}>
                 <Popup className="custom-popup">
                   <div className="p-1">
@@ -444,7 +449,7 @@ const PanchayatDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {plantations.filter(p => {
+                {allPlantations.filter(p => {
                   if (filterTab === 'APPROVED') return p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED';
                   return p.status === filterTab;
                 }).map(p => (
@@ -531,7 +536,7 @@ const PanchayatDashboard = () => {
                     )}
                   </tr>
                 ))}
-                {plantations.filter(p => {
+                {allPlantations.filter(p => {
                   if (filterTab === 'APPROVED') return p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED';
                   return p.status === filterTab;
                 }).length === 0 && (
@@ -568,10 +573,10 @@ const PanchayatDashboard = () => {
         onClose={() => { setShowApproveModal(false); setActionId(null); }}
         onConfirm={handleApprove}
         mode="approve"
-        title={plantations.find(p => p._id === actionId)?.risk?.riskScore === 'LOW' ? 'Autonomous Final Approval' : 'Approve & Escalate to NCCR'}
+        title={allPlantations.find(p => p._id === actionId)?.risk?.riskScore === 'LOW' ? 'Autonomous Final Approval' : 'Approve & Escalate to NCCR'}
         message={
           (() => {
-            const p = plantations.find(item => item._id === actionId);
+            const p = allPlantations.find(item => item._id === actionId);
             if (!p) return "";
             if (p.risk?.riskScore === 'LOW') {
               return "This is a low-risk case. Your approval will finalize the record and trigger token minting immediately.";

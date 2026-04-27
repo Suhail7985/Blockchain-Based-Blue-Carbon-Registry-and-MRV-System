@@ -11,6 +11,7 @@ import { ACCOUNT_STATUS } from '../constants/accountStatus.js';
 import { auditLog } from '../utils/auditLog.js';
 import { analyzePlantationsRisk } from '../utils/fraud.js';
 import { finalizePlantationApproval } from '../utils/verification.js';
+import { createNotification } from '../utils/notificationService.js';
 
 const router = express.Router();
 
@@ -23,8 +24,15 @@ router.get('/plantations', async (req, res) => {
     const panchayatUser = await User.findById(req.user.id).select('district state panchayatName').lean();
     const status = req.query.status;
 
-    // Strict area filtering based on logged-in Panchayat officer's jurisdiction
-    const query = { status: status || PLANTATION_STATUS.PENDING_PANCHAYAT };
+    // 'all' = fetch every status (used for analytics/stats on dashboard)
+    const query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    } else if (!status) {
+      // Default: show pending items only (the action queue)
+      query.status = PLANTATION_STATUS.PENDING_PANCHAYAT;
+    }
+    // if status === 'all', no status filter — returns everything in jurisdiction
     
     console.log('--- DEBUG: Panchayat Fetch ---');
     console.log('Panchayat User ID:', req.user.id);
@@ -169,6 +177,12 @@ router.patch('/plantations/:id/reject', async (req, res) => {
       newStatus: plantation.status,
       details: { reason },
     });
+
+    // In-app rejection notification to the citizen
+    createNotification(plantation.userId, 'plantation_rejected', {
+      plantationId: plantation.plantationId,
+      reason,
+    }).catch(() => {});
 
     res.json({
       success: true,

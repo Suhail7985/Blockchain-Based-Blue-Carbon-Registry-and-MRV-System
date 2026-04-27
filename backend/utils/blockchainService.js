@@ -112,8 +112,7 @@ export function isBlockchainConfigured() {
   return !!(
     process.env.NCCR_WALLET_PRIVATE_KEY &&
     process.env.PLANTATION_REGISTRY_ADDRESS &&
-    process.env.CARBON_CREDIT_TOKEN_ADDRESS &&
-    process.env.CARBON_MARKETPLACE_ADDRESS
+    process.env.CARBON_CREDIT_TOKEN_ADDRESS
   );
 }
 

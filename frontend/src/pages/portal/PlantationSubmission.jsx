@@ -129,11 +129,20 @@ const PlantationSubmission = () => {
         toast.success('GPS coordinates captured');
         setGpsLoading(false);
       },
-      () => {
-        toast.error('Could not get location. Check permissions or enter manually.');
+      (err) => {
+        console.warn("Geolocation error:", err);
+        let errorMsg = 'Could not get location. Check permissions or enter manually.';
+        if (err.code === 1) {
+          errorMsg = 'Location permission denied. Please allow location access near the URL bar.';
+        } else if (err.code === 2) {
+          errorMsg = 'Location is unavailable. Ensure device location services are enabled.';
+        } else if (err.code === 3) {
+          errorMsg = 'Location request timed out. Please try again.';
+        }
+        toast.error(errorMsg);
         setGpsLoading(false);
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -480,11 +489,11 @@ const PlantationSubmission = () => {
 
           {/* Advanced Plantation Details (SIH/MoES Requirement) */}
           <div className="pt-4 border-t border-gray-100">
-            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+            {/* <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
               <span className="p-1 bg-blue-100 text-blue-600 rounded">📊</span>
               Advanced Plantation Details (SIH Requirement)
-            </h3>
-            
+            </h3> */}
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Phase Number</label>
@@ -619,11 +628,10 @@ const PlantationSubmission = () => {
           <button
             type="submit"
             disabled={!isActive || submitting}
-            className={`w-full py-2.5 rounded-lg font-medium ${
-              isActive && !submitting
-                ? 'bg-bc-green-600 text-white hover:bg-bc-green-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className={`w-full py-2.5 rounded-lg font-medium ${isActive && !submitting
+              ? 'bg-bc-green-600 text-white hover:bg-bc-green-700'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
           >
             {submitting ? 'Submitting...' : isActive ? 'Submit Plantation' : 'Complete Verification to Submit'}
           </button>
