@@ -96,7 +96,7 @@ const CarbonCredits = () => {
       {!walletAddress && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
           <p className="text-sm text-amber-800">
-            Add your wallet address in <strong>Profile & KYC</strong> to receive BCC tokens after NCCR approval.
+            Add your wallet address in <strong>Profile & KYC</strong> to receive BCC tokens after Panchayat approval.
           </p>
         </div>
       )}
@@ -107,7 +107,7 @@ const CarbonCredits = () => {
         </div>
         {history.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            No token transactions yet. Submit plantations and complete NCCR verification to earn carbon credits.
+            No token transactions yet. Submit plantations and complete verification to earn carbon credits.
           </div>
         ) : (
           <div className="overflow-x-auto">

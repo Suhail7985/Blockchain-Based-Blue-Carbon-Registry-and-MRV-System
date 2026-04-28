@@ -130,7 +130,7 @@ export const sendPlantationStatusEmail = async (email, userName, plantationId, s
   const bodyContent = isApproved
     ? `
         <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
-          Great news! Your plantation <strong>${plantationId}</strong> has been verified and approved by NCCR.
+          Great news! Your plantation <strong>${plantationId}</strong> has been verified and approved by the Local Panchayat.
         </p>
         <div style="background: #ecfdf5; border-left: 4px solid #059669; padding: 16px; border-radius: 6px; margin: 20px 0;">
           <h4 style="color: #065f46; margin: 0 0 8px;">Carbon Credits Issued</h4>

@@ -27,22 +27,12 @@ const PlantationHistoryModal = ({ plantation, onClose }) => {
     });
   }
 
-  // 3. NCCR Verification
-  if (plantation.nccrVerification) {
-    events.push({
-      title: 'NCCR/Admin Verification',
-      timestamp: plantation.nccrVerification.timestamp,
-      icon: <FaShieldAlt className="text-purple-600" />,
-      description: `Decision: ${plantation.nccrVerification.decision.toUpperCase()}. Notes: ${plantation.nccrVerification.notes || 'No notes provided.'}`,
-      status: plantation.nccrVerification.decision === 'approved' ? 'completed' : 'failed',
-    });
-  }
+  // NCCR Verification Removed (Bypassed)
 
-  // 4. Blockchain Registration
   if (plantation.blockchainTxHash || plantation.blockchainHash) {
     events.push({
       title: 'Blockchain Registration',
-      timestamp: plantation.updatedAt, // Approximate if no specific log
+      timestamp: plantation.blockchainTimestamp || plantation.updatedAt || plantation.panchayatVerification?.timestamp || new Date(), // Approximate if no specific log
       icon: <FaLink className="text-blue-500" />,
       description: 'Record permanently stored on Polygon Amoy testnet.',
       txHash: plantation.blockchainTxHash,
@@ -66,8 +56,16 @@ const PlantationHistoryModal = ({ plantation, onClose }) => {
   // 6. Generic Audit Logs (if not already captured)
   if (plantation.auditLog && Array.isArray(plantation.auditLog)) {
       plantation.auditLog.forEach(log => {
-          // Avoid duplicates from hardcoded steps if possible, or just list all
-          const knownActions = ['submitted', 'panchayat_approved', 'nccr_approved', 'blockchain_confirmed', 'token_minted'];
+          // Avoid duplicates from hardcoded steps and filter out legacy/redundant admin actions
+          const knownActions = [
+            'submitted', 
+            'panchayat_approved', 
+            'panchayat_approved_final', 
+            'admin_approved_final', 
+            'nccr_approved', 
+            'blockchain_confirmed', 
+            'token_minted'
+          ];
           if (!knownActions.includes(log.action)) {
               events.push({
                   title: log.action.replace(/_/g, ' ').toUpperCase(),

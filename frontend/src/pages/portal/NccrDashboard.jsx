@@ -1,62 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import StatusBanner from '../../components/portal/StatusBanner';
 import {
   getAdminPlantations,
-  nccrApproveFinal,
+  nccrApprovePlantation,
   nccrRejectPlantation,
+  getAdminStats,
+  getAdminAnalytics,
+  getAuditLogs,
+  getCarbonSettings,
+  updateCarbonSettings,
   getPanchayats,
-  getAdminUsers,
   createPanchayat,
-  deleteAdminUser,
 } from '../../services/api';
 import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend
+} from 'recharts';
+import {
+  FaCheckCircle,
+  FaTimes,
+  FaLeaf,
+  FaUsers,
   FaLandmark,
+  FaCoins,
   FaShieldAlt,
-  FaSearch,
-  FaPlus,
-  FaUserTag,
-  FaMicroscope,
-  FaTrash,
+  FaExternalLinkAlt,
 } from 'react-icons/fa';
-import MrvDataModal from '../../components/portal/MrvDataModal';
+import StatusTimeline from '../../components/plantation/StatusTimeline';
+import { buildLifecycleTimestamps } from '../../utils/plantationLifecycle';
 import toast from 'react-hot-toast';
 
 const PENDING_NCCR = 'PENDING_NCCR';
+const TOKEN_MINTED = 'TOKEN_MINTED';
 
 const NccrDashboard = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('plantations');
   const [plantations, setPlantations] = useState([]);
-  const [panchayats, setPanchayats] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [filterState, setFilterState] = useState('');
+  const [filterDistrict, setFilterDistrict] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [citizenSearch, setCitizenSearch] = useState('');
-  
-  // Modals / Actions
-  const [rejectingId, setRejectingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState(null);
   const [rejectNotes, setRejectNotes] = useState('');
-  const [selectedMrvData, setSelectedMrvData] = useState(null);
-  const [showPanchayatModal, setShowPanchayatModal] = useState(false);
-  const [newPanchayat, setNewPanchayat] = useState({
-    name: '', email: '', district: '', state: '', password: ''
-  });
+  const [rejectingId, setRejectingId] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [panchayats, setPanchayats] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [newPanchayat, setNewPanchayat] = useState({
+    name: '',
+    email: '',
+    district: '',
+    state: '',
+  });
+  const [analytics, setAnalytics] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [settings, setSettings] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = () => {
     setLoading(true);
     Promise.all([
       getAdminPlantations(PENDING_NCCR),
+      getAdminStats(),
+      getAdminAnalytics(),
+      getAuditLogs(50),
+      getCarbonSettings(),
       getPanchayats(),
-      getAdminUsers({ role: 'citizen' }),
     ])
-      .then(([pending, panchayatRes, usersRes]) => {
+      .then(([pending, statsRes, analyticsRes, auditRes, settingsRes, panchayatRes]) => {
         if (pending.success && pending.plantations) setPlantations(pending.plantations);
+        if (statsRes.success) setStats(statsRes);
+        if (analyticsRes.success) setAnalytics(analyticsRes);
+        if (auditRes.success && auditRes.logs) setAuditLogs(auditRes.logs);
+        if (settingsRes.success) setSettings(settingsRes.settings);
         if (panchayatRes.success && panchayatRes.panchayats) setPanchayats(panchayatRes.panchayats);
-        if (usersRes.success) setUsers(usersRes.users);
       })
-      .catch(() => toast.error('Failed to load operational data'))
+      .catch(() => toast.error('Failed to load admin data'))
       .finally(() => setLoading(false));
   };
 
@@ -64,24 +85,23 @@ const NccrDashboard = () => {
     load();
   }, []);
 
-  const handleApprove = async (id) => {
-    if (!window.confirm('Confirm final approval and BCC credit minting?')) return;
+  const handleApprove = async (id, notes) => {
+    setActionId(id);
     try {
-      const res = await nccrApproveFinal(id);
+      const res = await nccrApprovePlantation(id, notes);
       if (res.success) {
         toast.success(res.message);
         load();
-      } else toast.error(res.message || 'Approval failed');
+      } else toast.error(res.message || 'Approve failed');
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Approval failed');
+      toast.error(e.response?.data?.message || 'Approve failed');
+    } finally {
+      setActionId(null);
     }
   };
 
   const handleReject = async (id) => {
-    if (!rejectNotes.trim()) {
-      toast.error('Rejection notes are required');
-      return;
-    }
+    setRejectingId(id);
     try {
       const res = await nccrRejectPlantation(id, rejectNotes);
       if (res.success) {
@@ -92,37 +112,7 @@ const NccrDashboard = () => {
       } else toast.error(res.message || 'Reject failed');
     } catch (e) {
       toast.error(e.response?.data?.message || 'Reject failed');
-    }
-  };
-
-  const handleCreatePanchayat = async (e) => {
-    e.preventDefault();
-    setCreating(true);
-    try {
-      const res = await createPanchayat(newPanchayat);
-      if (res.success) {
-        toast.success('Panchayat official onboarded');
-        setNewPanchayat({ name: '', email: '', district: '', state: '', password: '' });
-        setShowPanchayatModal(false);
-        load();
-      }
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to onboard');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleDeleteUser = async (id, name, role) => {
-    if (!window.confirm(`Are you sure you want to PERMANENTLY delete ${role} "${name}"? This action cannot be undone.`)) return;
-    try {
-      const res = await deleteAdminUser(id);
-      if (res.success) {
-        toast.success(res.message);
-        load();
-      } else toast.error(res.message || 'Deletion failed');
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Deletion failed');
+      setRejectingId(null);
     }
   };
 
@@ -130,368 +120,454 @@ const NccrDashboard = () => {
     return <Navigate to="/portal" replace />;
   }
 
-  const filteredPlantations = plantations.filter(p => 
-    p.plantationId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredUsers = users.filter(u => 
-    u.name?.toLowerCase().includes(citizenSearch.toLowerCase()) ||
-    u.email?.toLowerCase().includes(citizenSearch.toLowerCase()) ||
-    u.referenceId?.toLowerCase().includes(citizenSearch.toLowerCase())
-  );
-
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-bc-green-600 mb-4"></div>
-      <p className="text-gray-500 font-medium">Loading Operations Hub...</p>
-    </div>
-  );
-
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">NCCR Approval Console</h1>
-          <p className="text-gray-500 font-medium mt-1">Registry Verification & Stakeholder Management</p>
-        </div>
-        
-        <div className="flex bg-gray-100 p-1 rounded-2xl">
-          {[
-            { id: 'plantations', label: 'Queue', icon: FaShieldAlt },
-            { id: 'panchayats', label: 'Panchayats', icon: FaLandmark },
-            { id: 'citizens', label: 'Citizens', icon: FaUserTag },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-white text-bc-green-700 shadow-sm' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
+    <div className="max-w-5xl mx-auto">
+      {/* Filtering and Search Controls */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6 flex flex-wrap gap-4 items-center">
+        <input
+          type="text"
+          placeholder="Search by Plantation ID or Applicant"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm min-w-[200px]"
+        />
+        <select
+          value={filterState}
+          onChange={e => setFilterState(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">All States</option>
+          {[...new Set(plantations.map(p => p.userId?.state).filter(Boolean))].map(state => (
+            <option key={state} value={state}>{state}</option>
           ))}
+        </select>
+        <select
+          value={filterDistrict}
+          onChange={e => setFilterDistrict(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">All Districts</option>
+          {[...new Set(plantations.map(p => p.userId?.district).filter(Boolean))].map(district => (
+            <option key={district} value={district}>{district}</option>
+          ))}
+        </select>
+        <select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">All Statuses</option>
+          {[...new Set(plantations.map(p => p.status).filter(Boolean))].map(status => (
+            <option key={status} value={status}>{status}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="ml-auto px-4 py-2 bg-bc-green-600 text-white rounded-lg font-medium hover:bg-bc-green-700"
+          onClick={() => {
+            // Export filtered plantations as CSV
+            const filtered = plantations.filter(p => {
+              const matchesState = !filterState || p.userId?.state === filterState;
+              const matchesDistrict = !filterDistrict || p.userId?.district === filterDistrict;
+              const matchesStatus = !filterStatus || p.status === filterStatus;
+              const matchesSearch = !searchTerm ||
+                (p.plantationId && p.plantationId.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (p.userId?.name && p.userId.name.toLowerCase().includes(searchTerm.toLowerCase()));
+              return matchesState && matchesDistrict && matchesStatus && matchesSearch;
+            });
+            const csvRows = [
+              ['Plantation ID','Applicant','Email','State','District','Status','Species','Tree Count','Area (ha)','Date'],
+              ...filtered.map(p => [
+                p.plantationId,
+                p.userId?.name,
+                p.userId?.email,
+                p.userId?.state,
+                p.userId?.district,
+                p.status,
+                p.speciesName,
+                p.treeCount,
+                p.areaHectares,
+                p.plantationDate ? new Date(p.plantationDate).toLocaleDateString() : ''
+              ])
+            ];
+            const csvContent = csvRows.map(r => r.map(x => '"'+(x??'')+'"').join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'plantations.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }}
+        >
+          Export CSV
+        </button>
+      </section>
+      <StatusBanner accountStatus={user?.accountStatus} />
+      <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+        <FaLeaf className="w-7 h-7 text-bc-green-600" />
+        NCCR Admin Dashboard
+      </h1>
+      <p className="text-gray-600 mb-6">
+        National Blue Carbon Registry operations console – manage Panchayats and approve verified plantations.
+      </p>
+
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">System Overview</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+            <p className="text-sm text-gray-500 flex items-center gap-1">
+              <FaUsers className="w-4 h-4" /> Total Users
+            </p>
+            <p className="text-xl font-bold text-gray-900 mt-1">{stats?.totalUsers ?? '—'}</p>
+          </div>
+          <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+            <p className="text-sm text-gray-500 flex items-center gap-1">
+              <FaLandmark className="w-4 h-4" /> Panchayats Onboarded
+            </p>
+            <p className="text-xl font-bold text-gray-900 mt-1">{stats?.totalPanchayats ?? '—'}</p>
+          </div>
+          <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+            <p className="text-sm text-gray-500 flex items-center gap-1">
+              <FaLeaf className="w-4 h-4" /> Plantations Pending
+            </p>
+            <p className="text-xl font-bold text-gray-900 mt-1">{stats?.pendingPlantations ?? '—'}</p>
+          </div>
+          <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+            <p className="text-sm text-gray-500 flex items-center gap-1">
+              <FaCoins className="w-4 h-4" /> Tokens Minted
+            </p>
+            <p className="text-xl font-bold text-bc-green-700 mt-1">
+              {stats ? Math.round((stats.tokensMinted || 0) * 1000) / 1000 : '—'}
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {activeTab === 'plantations' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black text-gray-900">Verification Queue</h3>
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-                <input 
-                  type="text" 
-                  placeholder="Search Registry ID..."
-                  className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none w-64 focus:ring-2 focus:ring-bc-green-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+      {analytics && (
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">National Carbon Analytics</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+              <p className="text-sm text-gray-500">Verified Plantations</p>
+              <p className="text-xl font-bold text-gray-900 mt-1">
+                {analytics.totalVerifiedPlantations ?? '—'}
+              </p>
             </div>
-
-            <div className="grid lg:grid-cols-2 gap-6">
-              {filteredPlantations.length > 0 ? filteredPlantations.map((p) => (
-                <div key={p._id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="p-6 border-b border-gray-50 flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded uppercase">Phase 2: NCCR Final</span>
-                        {p.risk?.riskScore === 'HIGH' && (
-                          <span className="px-2 py-0.5 bg-red-50 text-red-700 text-[10px] font-black rounded uppercase">High Risk</span>
-                        )}
-                      </div>
-                      <h4 className="text-lg font-black text-gray-900">{p.plantationId}</h4>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Submitted</p>
-                      <p className="text-sm font-bold text-gray-900">{new Date(p.submissionTimestamp).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-
-                  <div className="p-6 grid grid-cols-2 gap-6 bg-gray-50/30">
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Applicant</p>
-                      <p className="text-sm font-bold text-gray-900">{p.userId?.name}</p>
-                      <p className="text-xs text-gray-500">{p.userId?.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Location</p>
-                      <p className="text-sm font-bold text-gray-900">{p.userId?.district}, {p.userId?.state}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Area (ha)</p>
-                      <p className="text-sm font-bold text-gray-900">{p.areaHectares}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Estimated Credits</p>
-                      <p className="text-base font-black text-bc-green-700">{(p.areaHectares * (p.speciesInfo?.sequestrationRate || 1)).toFixed(2)} BCC</p>
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex flex-wrap items-center gap-3">
-                    <button 
-                      onClick={() => setSelectedMrvData(p)}
-                      className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
-                    >
-                      <FaMicroscope className="text-bc-green-500" />
-                      Detailed MRV
-                    </button>
-                    <div className="flex-1"></div>
-                    <button 
-                      onClick={() => setRejectingId(p._id)}
-                      className="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl"
-                    >
-                      Reject
-                    </button>
-                    <button 
-                      onClick={() => handleApprove(p._id)}
-                      className="px-6 py-2 bg-bc-green-600 text-white rounded-xl text-xs font-black shadow-lg shadow-bc-green/20 hover:bg-bc-green-700 transition-all active:scale-95"
-                    >
-                      Approve & Mint
-                    </button>
-                  </div>
-                </div>
-              )) : (
-                <div className="lg:col-span-2 py-20 text-center bg-white rounded-3xl border border-dashed border-gray-200">
-                  <FaShieldAlt className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-                  <h4 className="text-lg font-bold text-gray-400">Queue Clear</h4>
-                  <p className="text-sm text-gray-400">No new plantations pending final registry review.</p>
-                </div>
-              )}
+            <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+              <p className="text-sm text-gray-500">Total CO₂ Sequestered (t)</p>
+              <p className="text-xl font-bold text-gray-900 mt-1">
+                {analytics.totalCO2 ? Math.round(analytics.totalCO2 * 100) / 100 : 0}
+              </p>
+            </div>
+            <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+              <p className="text-sm text-gray-500">Total Tokens Issued</p>
+              <p className="text-xl font-bold text-bc-green-700 mt-1">
+                {analytics.totalTokens ? Math.round(analytics.totalTokens * 100) / 100 : 0}
+              </p>
+            </div>
+            <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+              <p className="text-sm text-gray-500">Blockchain Transactions</p>
+              <p className="text-xl font-bold text-gray-900 mt-1">
+                {analytics.totalBlockchainTx ?? 0}
+              </p>
             </div>
           </div>
-        )}
 
-        {activeTab === 'panchayats' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black text-gray-900">Local Panchayat Officers</h3>
-              <button 
-                onClick={() => setShowPanchayatModal(true)}
-                className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg active:scale-95"
-              >
-                <FaPlus />
-                Onboard Officer
-              </button>
-            </div>
-            
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Official Details</th>
-                    <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Jurisdiction</th>
-                    <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Public ID</th>
-                    <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {panchayats.map(pan => (
-                    <tr key={pan._id} className="hover:bg-gray-50/30 transition-colors group">
-                      <td className="px-8 py-4">
-                        <p className="font-bold text-gray-900">{pan.name}</p>
-                        <p className="text-xs text-gray-500">{pan.email}</p>
-                      </td>
-                      <td className="px-8 py-4 text-sm text-gray-600 font-medium">
-                        {pan.district}, {pan.state}
-                      </td>
-                      <td className="px-8 py-4 font-mono text-[11px] text-bc-green-600 font-bold uppercase">
-                        {pan.panchayatId}
-                      </td>
-                      <td className="px-8 py-4">
-                        <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-[10px] font-bold">ACTIVE</span>
-                      </td>
-                      <td className="px-8 py-4 text-right">
-                        <button 
-                          onClick={() => handleDeleteUser(pan._id, pan.name, 'Panchayat Officer')}
-                          className="p-2 text-gray-300 hover:text-red-600 transition-colors"
-                          title="Remove Panchayat Official"
-                        >
-                          <FaTrash className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'citizens' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black text-gray-900">Citizen Directory</h3>
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-                <input 
-                  type="text" 
-                  placeholder="Search Name or BCR-ID..."
-                  className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none w-64 focus:ring-2 focus:ring-bc-green-500"
-                  value={citizenSearch}
-                  onChange={(e) => setCitizenSearch(e.target.value)}
-                />
+          <div className="grid md:grid-cols-2 gap-6 mt-6">
+            <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">State-wise CO₂ Sequestered</h3>
+              <div className="h-64">
+                {analytics.stateBreakdown?.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={analytics.stateBreakdown}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                      <XAxis type="number" tick={{ fontSize: 12, fill: '#6B7280' }} />
+                      <YAxis dataKey="_id" type="category" tick={{ fontSize: 12, fill: '#374151' }} width={80} />
+                      <Tooltip
+                        cursor={{ fill: '#F3F4F6' }}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Bar dataKey="totalCO2" name="CO₂ (t)" fill="#10B981" radius={[0, 4, 4, 0]} barSize={24} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-sm text-gray-400">No state data available</div>
+                )}
               </div>
             </div>
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUsers.map(u => (
-                <div key={u._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-start gap-4 hover:border-bc-green-200 transition-colors">
-                  <div className="w-12 h-12 bg-bc-green-50 rounded-2xl flex items-center justify-center text-bc-green-600 font-black text-lg">
-                    {u.name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <h5 className="font-black text-gray-900 leading-tight">{u.name}</h5>
-                      <button 
-                        onClick={() => handleDeleteUser(u._id, u.name, 'Citizen')}
-                        className="p-1 -mr-2 text-gray-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Delete Citizen Profile"
-                      >
-                        <FaTrash className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-500 font-medium">{u.email}</p>
-                    <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                      <span>{u.district}</span>
-                      <span>·</span>
-                      <span>{u.state}</span>
-                    </div>
-                    <div className="mt-2 inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold font-mono">
-                      {u.referenceId || 'UNVERIFIED'}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">Monthly CO₂ Trend</h3>
+              <div className="h-64">
+                {analytics.monthlyTrend?.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={analytics.monthlyTrend.map(m => ({
+                        name: `${m._id.month}/${m._id.year}`,
+                        co2: Math.round(m.totalCO2 * 10) / 10
+                      }))}
+                      margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6B7280' }} tickMargin={10} />
+                      <YAxis tick={{ fontSize: 12, fill: '#6B7280' }} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="co2"
+                        name="CO₂ (t)"
+                        stroke="#3B82F6"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#3B82F6', strokeWidth: 2, stroke: '#FFFFFF' }}
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-sm text-gray-400">No monthly trend data available</div>
+                )}
+              </div>
             </div>
           </div>
-        )}
-      </div>
-
-      <MrvDataModal
-        data={selectedMrvData}
-        onClose={() => setSelectedMrvData(null)}
-      />
-
-      {/* Reject Modal */}
-      {rejectingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-gray-900 mb-2">Reject Plantation</h3>
-            <p className="text-sm text-gray-500 mb-6 font-medium">Please provide a reason for rejection. This will be sent to the user.</p>
-            <textarea
-              value={rejectNotes}
-              onChange={(e) => setRejectNotes(e.target.value)}
-              placeholder="Reason for rejection..."
-              className="w-full h-32 p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-red-500 resize-none mb-6 font-medium"
-            />
-            <div className="flex gap-3">
-              <button 
-                onClick={() => { setRejectingId(null); setRejectNotes(''); }}
-                className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-50 transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => handleReject(rejectingId)}
-                className="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-black hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95"
-              >
-                Confirm Rejection
-              </button>
-            </div>
-          </div>
-        </div>
+        </section>
       )}
 
-      {/* Panchayat Modal */}
-      {showPanchayatModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-xl w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-gray-900 mb-6">Onboard Panchayat Official</h3>
-            <form onSubmit={handleCreatePanchayat} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Full Name</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="Enter full name"
-                    value={newPanchayat.name}
-                    onChange={e => setNewPanchayat(p => ({ ...p, name: e.target.value }))}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-bc-green-500 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Email Address</label>
-                  <input
-                    required
-                    type="email"
-                    placeholder="official@panchayat.gov.in"
-                    value={newPanchayat.email}
-                    onChange={e => setNewPanchayat(p => ({ ...p, email: e.target.value }))}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-bc-green-500 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1">District</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="District name"
-                    value={newPanchayat.district}
-                    onChange={e => setNewPanchayat(p => ({ ...p, district: e.target.value }))}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-bc-green-500 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1">State</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="State name"
-                    value={newPanchayat.state}
-                    onChange={e => setNewPanchayat(p => ({ ...p, state: e.target.value }))}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-bc-green-500 text-sm"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Temporary Password</label>
-                <input
-                  required
-                  type="password"
-                  placeholder="Set login password"
-                  value={newPanchayat.password}
-                  onChange={e => setNewPanchayat(p => ({ ...p, password: e.target.value }))}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-bc-green-500 text-sm"
-                />
-              </div>
-              <div className="flex gap-3 pt-6">
-                <button 
-                  type="button"
-                  onClick={() => setShowPanchayatModal(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-50 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  disabled={creating}
-                  className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-black hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-50"
-                >
-                  {creating ? 'Processing...' : 'Onboard Official'}
-                </button>
-              </div>
-            </form>
+      {settings && (
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Governance Settings – Carbon Model</h2>
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <label className="text-sm text-gray-700">
+              Average Biomass per Tree (kg)
+              <input
+                type="number"
+                value={settings.avgBiomassPerTreeKg}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, avgBiomassPerTreeKg: Number(e.target.value) }))
+                }
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </label>
+            <label className="text-sm text-gray-700">
+              Carbon Fraction
+              <input
+                type="number"
+                step="0.01"
+                value={settings.carbonFraction}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, carbonFraction: Number(e.target.value) }))
+                }
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </label>
+            <label className="text-sm text-gray-700">
+              CO₂ Multiplier
+              <input
+                type="number"
+                step="0.01"
+                value={settings.co2eqFactor}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, co2eqFactor: Number(e.target.value) }))
+                }
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </label>
+            <label className="text-sm text-gray-700">
+              Token Rule
+              <input
+                type="text"
+                value={settings.tokenRule || ''}
+                onChange={(e) => setSettings((s) => ({ ...s, tokenRule: e.target.value }))}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={!!settings.autoMintEnabled}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, autoMintEnabled: e.target.checked }))
+                }
+              />
+              Enable automatic token minting on approval
+            </label>
           </div>
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-gray-500">
+              Model: Biomass = Trees × Avg Biomass; Carbon = Biomass × Carbon Fraction; CO₂eq =
+              Carbon × CO₂ Multiplier; Tokens = CO₂eq.
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                setSavingSettings(true);
+                try {
+                  const res = await updateCarbonSettings(settings);
+                  if (res.success) {
+                    setSettings(res.settings);
+                    toast.success('Carbon settings updated');
+                  } else {
+                    toast.error(res.message || 'Failed to update settings');
+                  }
+                } catch (e) {
+                  toast.error(e.response?.data?.message || 'Failed to update settings');
+                } finally {
+                  setSavingSettings(false);
+                }
+              }}
+              className="px-4 py-2 bg-bc-green-600 text-white rounded-lg font-medium hover:bg-bc-green-700 disabled:opacity-50"
+              disabled={savingSettings}
+            >
+              {savingSettings ? 'Saving...' : 'Save Settings'}
+            </button>
+          </div>
+        </section>
+      )}
+
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <FaLandmark className="w-5 h-5 text-bc-green-600" />
+          Local Panchayats
+        </h2>
+        <div className="grid md:grid-cols-3 gap-4 mb-4">
+          <input
+            type="text"
+            placeholder="Panchayat name"
+            value={newPanchayat.name}
+            onChange={(e) => setNewPanchayat((p) => ({ ...p, name: e.target.value }))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={newPanchayat.email}
+            onChange={(e) => setNewPanchayat((p) => ({ ...p, email: e.target.value }))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          />
+          <input
+            type="text"
+            placeholder="District"
+            value={newPanchayat.district}
+            onChange={(e) => setNewPanchayat((p) => ({ ...p, district: e.target.value }))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          />
+          <input
+            type="text"
+            placeholder="State"
+            value={newPanchayat.state}
+            onChange={(e) => setNewPanchayat((p) => ({ ...p, state: e.target.value }))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              if (!newPanchayat.name || !newPanchayat.email) {
+                toast.error('Name and email are required');
+                return;
+              }
+              setCreating(true);
+              try {
+                const res = await createPanchayat(newPanchayat);
+                if (res.success) {
+                  toast.success('Panchayat created');
+                  setNewPanchayat({ name: '', email: '', district: '', state: '' });
+                  load();
+                } else {
+                  toast.error(res.message || 'Failed to create Panchayat');
+                }
+              } catch (e) {
+                toast.error(e.response?.data?.message || 'Failed to create Panchayat');
+              } finally {
+                setCreating(false);
+              }
+            }}
+            disabled={creating}
+            className="px-4 py-2 bg-bc-green-600 text-white rounded-lg font-medium hover:bg-bc-green-700 disabled:opacity-50"
+          >
+            {creating ? 'Creating...' : 'Add Panchayat'}
+          </button>
         </div>
+        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Email</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">District</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">State</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Panchayat ID</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {panchayats.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-4 text-center text-gray-500">
+                    No Panchayats onboarded yet.
+                  </td>
+                </tr>
+              ) : (
+                panchayats.map((p) => (
+                  <tr key={p._id}>
+                    <td className="px-4 py-2 text-gray-900">{p.name}</td>
+                    <td className="px-4 py-2 text-gray-700">{p.email}</td>
+                    <td className="px-4 py-2 text-gray-700">{p.district}</td>
+                    <td className="px-4 py-2 text-gray-700">{p.state}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-gray-700">{p.panchayatId || '—'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {auditLogs?.length > 0 && (
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <FaShieldAlt className="w-5 h-5 text-bc-green-600" />
+            Recent Audit Trail
+          </h2>
+          <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Time</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Action</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Role</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">User</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 uppercase">Old → New</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {auditLogs.map((log) => (
+                  <tr key={log._id}>
+                    <td className="px-4 py-2 text-xs text-gray-600">
+                      {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
+                    </td>
+                    <td className="px-4 py-2 text-gray-800">{log.action}</td>
+                    <td className="px-4 py-2 text-gray-700">{log.role || '—'}</td>
+                    <td className="px-4 py-2 text-gray-700">
+                      {log.performedBy
+                        ? `${log.performedBy.name || ''} (${log.performedBy.email || ''})`
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-2 text-xs text-gray-700">
+                      {log.previousStatus || '—'} → {log.newStatus || '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

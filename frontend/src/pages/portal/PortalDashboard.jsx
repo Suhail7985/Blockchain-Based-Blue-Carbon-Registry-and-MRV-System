@@ -19,7 +19,6 @@ import {
 
 const PLANTATION_STATUS = {
   PENDING_PANCHAYAT: 'PENDING_PANCHAYAT',
-  PENDING_NCCR: 'PENDING_NCCR',
   VERIFIED: 'VERIFIED',
   REJECTED: 'REJECTED',
   BLOCKCHAIN_CONFIRMED: 'BLOCKCHAIN_CONFIRMED',
@@ -50,7 +49,7 @@ const PortalDashboard = () => {
   }, [user, isActive]);
 
   const pendingCount = plantations.filter(
-    (p) => p.status === PLANTATION_STATUS.PENDING_PANCHAYAT || p.status === PLANTATION_STATUS.PENDING_NCCR
+    (p) => p.status === PLANTATION_STATUS.PENDING_PANCHAYAT
   ).length;
   const verifiedCount = plantations.filter(
     (p) =>
