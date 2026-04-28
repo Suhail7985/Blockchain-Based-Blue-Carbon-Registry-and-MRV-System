@@ -36,10 +36,7 @@ router.get('/plantations', async (req, res) => {
     // if status === 'all', no status filter — returns everything in jurisdiction
     
     // Strict area filtering based on logged-in Panchayat officer's jurisdiction
-    const query = {};
-    if (status) {
-      query.status = status;
-    }
+    // (query is already initialized and status is handled above)
 
     /*
     if (panchayatUser?.state) {
