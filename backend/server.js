@@ -18,6 +18,7 @@ import ngoRoutes from './routes/ngo.js';
 import publicRoutes from './routes/public.js';
 import healthRoutes from './routes/health.js';
 import marketplaceRoutes from './routes/marketplace.js';
+import notificationRoutes from './routes/notifications.js';
 
 import config from './config/config.js';
 import { protect } from './middleware/auth.js';
@@ -93,6 +94,7 @@ app.use('/api/ngo', ngoRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Server health check
 app.get('/api/server-health', (req, res) => {

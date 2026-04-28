@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import { FaTree } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import NotificationBell from './layout/NotificationBell';
 
 export default function Navigation() {
   const { user, logout, isNCCR, isPanchayat, isUser } = useAuth();
@@ -107,7 +108,9 @@ export default function Navigation() {
               })}
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+          <div className="hidden sm:ml-6 sm:flex sm:items-center" style={{ gap: 8 }}>
+            {/* Notification Bell */}
+            <NotificationBell />
             <div className="ml-3 relative user-menu-container">
               <motion.button
                 whileHover={{ scale: 1.1 }}

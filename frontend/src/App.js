@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -45,61 +46,63 @@ function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <Router
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
-          <div className="App">
-            <Toaster position="top-right" />
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/verify-otp" element={<VerifyOTP />} />
-              <Route path="/complete-registration" element={<CompleteRegistration />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password/:token" element={<ResetPassword />} />
-              <Route path="/transparency" element={<Transparency />} />
-              <Route path="/explorer" element={<IntegrityExplorer />} />
+        <NotificationProvider>
+          <Router
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
+            <div className="App">
+              <Toaster position="top-right" />
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/verify-otp" element={<VerifyOTP />} />
+                <Route path="/complete-registration" element={<CompleteRegistration />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/transparency" element={<Transparency />} />
+                <Route path="/explorer" element={<IntegrityExplorer />} />
 
-              {/* Portal - Protected */}
-              <Route
-                path="/portal"
-                element={
-                  <ProtectedRoute>
-                    <PortalLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<PortalIndex />} />
-                <Route path="profile" element={<ProfileKYC />} />
-                <Route path="land" element={<LandRegistration />} />
-                <Route path="plantation" element={<PlantationSubmission />} />
-                <Route path="my-plantations" element={<MyPlantations />} />
-                <Route path="carbon" element={<CarbonCredits />} />
-                <Route path="blockchain" element={<BlockchainRecords />} />
-                <Route path="ledger" element={<CarbonLedger />} />
-                <Route path="panchayat" element={<PanchayatDashboard />} />
-                <Route path="nccr" element={<NccrDashboard />} />
-                <Route path="ngo" element={<NgoDashboard />} />
-                <Route path="impact" element={<NationalImpactDashboard />} />
-                <Route path="gis" element={<PlantationGIS />} />
-                <Route path="health" element={<HealthMonitoring />} />
-                <Route path="analysis/advanced" element={<AdvancedAnalysis />} />
-                <Route path="marketplace" element={<CorporateDashboard />} />
-              </Route>
+                {/* Portal - Protected */}
+                <Route
+                  path="/portal"
+                  element={
+                    <ProtectedRoute>
+                      <PortalLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<PortalIndex />} />
+                  <Route path="profile" element={<ProfileKYC />} />
+                  <Route path="land" element={<LandRegistration />} />
+                  <Route path="plantation" element={<PlantationSubmission />} />
+                  <Route path="my-plantations" element={<MyPlantations />} />
+                  <Route path="carbon" element={<CarbonCredits />} />
+                  <Route path="blockchain" element={<BlockchainRecords />} />
+                  <Route path="ledger" element={<CarbonLedger />} />
+                  <Route path="panchayat" element={<PanchayatDashboard />} />
+                  <Route path="nccr" element={<NccrDashboard />} />
+                  <Route path="ngo" element={<NgoDashboard />} />
+                  <Route path="impact" element={<NationalImpactDashboard />} />
+                  <Route path="gis" element={<PlantationGIS />} />
+                  <Route path="health" element={<HealthMonitoring />} />
+                  <Route path="analysis/advanced" element={<AdvancedAnalysis />} />
+                  <Route path="marketplace" element={<CorporateDashboard />} />
+                </Route>
 
-              {/* Redirect legacy dashboard */}
-              <Route path="/dashboard" element={<Navigate to="/portal" replace />} />
+                {/* Redirect legacy dashboard */}
+                <Route path="/dashboard" element={<Navigate to="/portal" replace />} />
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-        </Router>
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </div>
+          </Router>
+        </NotificationProvider>
       </AuthProvider>
     </LanguageProvider>
   );

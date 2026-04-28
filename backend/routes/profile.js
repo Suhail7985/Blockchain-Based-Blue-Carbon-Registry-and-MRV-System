@@ -26,6 +26,7 @@ router.patch(
     body('address').optional().trim(),
     body('state').optional().trim(),
     body('district').optional().trim(),
+    body('zipCode').optional().trim(),
     body('ngoName').optional().trim(),
     body('ngoRegistrationNumber').optional().trim(),
     body('ownershipType').optional().isIn(['private', 'community']),
@@ -42,7 +43,7 @@ router.patch(
           message: 'Use the main profile form with document upload for verification.',
         });
       }
-      const updates = ['name', 'dateOfBirth', 'phone', 'address', 'state', 'district', 'ngoName', 'ngoRegistrationNumber', 'ownershipType', 'walletAddress'];
+      const updates = ['name', 'dateOfBirth', 'phone', 'address', 'state', 'district', 'zipCode', 'ngoName', 'ngoRegistrationNumber', 'ownershipType', 'walletAddress'];
       updates.forEach((f) => {
         if (req.body[f] !== undefined) {
           if (f === 'dateOfBirth') user[f] = req.body[f] ? new Date(req.body[f]) : req.body[f];
@@ -93,6 +94,7 @@ router.put(
     body('address').trim().notEmpty().withMessage('Address is required'),
     body('state').optional().trim(),
     body('district').optional().trim(),
+    body('zipCode').optional().trim(),
     body('ngoName').optional().trim(),
     body('ngoRegistrationNumber').optional().trim(),
     body('ownershipType').optional().isIn(['private', 'community']),
@@ -117,6 +119,7 @@ router.put(
         address,
         state,
         district,
+        zipCode,
         ngoName,
         ngoRegistrationNumber,
         ownershipType,
@@ -133,6 +136,7 @@ router.put(
         user.address = address ?? user.address;
         user.state = state ?? user.state;
         user.district = district ?? user.district;
+        user.zipCode = zipCode ?? user.zipCode;
         user.ngoName = ngoName ?? user.ngoName;
         user.ngoRegistrationNumber = ngoRegistrationNumber ?? user.ngoRegistrationNumber;
         user.ownershipType = ownershipType ?? user.ownershipType;
@@ -182,6 +186,7 @@ router.put(
         user.address = address;
         user.state = state ?? user.state;
         user.district = district ?? user.district;
+        user.zipCode = zipCode ?? user.zipCode;
         user.ngoName = ngoName ?? user.ngoName;
         user.ngoRegistrationNumber = ngoRegistrationNumber ?? user.ngoRegistrationNumber;
         user.ownershipType = ownershipType ?? user.ownershipType;
@@ -221,6 +226,7 @@ router.put(
       user.address = address;
       user.state = state ?? user.state;
       user.district = district ?? user.district;
+      user.zipCode = zipCode ?? user.zipCode;
       user.ngoName = ngoName ?? user.ngoName;
       user.ngoRegistrationNumber = ngoRegistrationNumber ?? user.ngoRegistrationNumber;
       user.ownershipType = ownershipType ?? user.ownershipType;

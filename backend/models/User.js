@@ -68,6 +68,7 @@ const userSchema = new mongoose.Schema({
   address: { type: String, trim: true },
   state: { type: String, trim: true },
   district: { type: String, trim: true },
+  zipCode: { type: String, trim: true },
   // Organization
   ngoName: { type: String, trim: true },
   ngoRegistrationNumber: { type: String, trim: true },

@@ -10,6 +10,7 @@ import {
 } from './blockchainService.js';
 import { PLANTATION_STATUS } from '../constants/plantationStatus.js';
 import { sendPlantationStatusEmail } from './emailService.js';
+import { createNotification } from './notificationService.js';
 
 /**
  * Finalizes the approval of a plantation:
@@ -104,6 +105,12 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
         plantation.blockchainTimestamp = bcResult.timestamp;
         plantation.status = PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED;
         await plantation.save();
+
+        // Notify user that plantation is confirmed on blockchain
+        createNotification(plantation.userId._id, 'blockchain_confirmed', {
+          plantationId: plantation.plantationId,
+          txHash: bcResult.transactionHash,
+        }).catch(() => {});
       } else {
         // Revert to VERIFIED if blockchain storage failed so it can be retried
         plantation.status = PLANTATION_STATUS.VERIFIED;
@@ -158,6 +165,14 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
           newStatus: plantation.status,
           details: { txHash: mintResult.transactionHash, amount: carbonCalc.tokens },
         });
+
+        // Notify user — token_minted triggers voice alert on frontend
+        createNotification(plantation.userId._id, 'token_minted', {
+          plantationId: plantation.plantationId,
+          tokens: carbonCalc.tokens,
+          co2eq: carbonCalc.co2eq,
+          txHash: mintResult.transactionHash,
+        }).catch(() => {});
       } else {
         console.error(`Token minting failed for ${plantation.plantationId}: ${mintResult?.error}`);
         await AuditLog.create({
@@ -173,7 +188,7 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
     }
   }
 
-  // 4. Email Notification
+  // 4. Email + In-App Notification
   if (plantation.userId?.email) {
     sendPlantationStatusEmail(
       plantation.userId.email, 
@@ -187,6 +202,11 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
       }
     ).catch(() => {});
   }
+
+  // In-app approval notification (always, regardless of blockchain/token status)
+  createNotification(plantation.userId._id, 'plantation_approved', {
+    plantationId: plantation.plantationId,
+  }).catch(() => {});
 
   return plantation;
 }
