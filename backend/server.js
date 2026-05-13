@@ -127,6 +127,7 @@ if (process.env.NODE_ENV !== 'test') {
   // Always listen (Render is a traditional server, not serverless)
   app.listen(PORT, () => {
     console.log(`🚀 CarbonSetu Server running on port ${PORT}`);
+    console.log('✅ Panchayat routes registered at /api/panchayat');
   });
 }
 

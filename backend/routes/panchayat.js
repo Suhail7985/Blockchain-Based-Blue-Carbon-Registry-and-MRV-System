@@ -93,6 +93,83 @@ router.get('/plantations', async (req, res) => {
   }
 });
 
+// GET /api/panchayat/plantations/:id/data - verify endpoint
+router.get('/plantations/:id/data', async (req, res) => {
+  console.log('[PANCHAYAT] GET request for plantation data:', req.params.id);
+  res.json({ success: true, message: 'Data endpoint is reachable' });
+});
+
+// PATCH /api/panchayat/plantations/:id/data - update MGNREGA/survival data
+router.patch('/plantations/:id/data', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`[PANCHAYAT] PATCH request for plantation data: ${id}`);
+    console.log('Request Body:', req.body);
+    
+    // Support both MongoDB _id and custom plantationId
+    let plantation = await Plantation.findById(id);
+    if (!plantation) {
+      plantation = await Plantation.findOne({ plantationId: id });
+    }
+
+    if (!plantation) {
+      console.log('[PANCHAYAT] Plantation not found for ID:', id);
+      return res.status(404).json({ success: false, message: 'Plantation not found' });
+    }
+    
+    if (plantation.status !== PLANTATION_STATUS.PENDING_PANCHAYAT) {
+      console.log('[PANCHAYAT] Status mismatch:', plantation.status);
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot update data. Plantation is in ${plantation.status} status.` 
+      });
+    }
+
+    const {
+      personDays,
+      wageRate,
+      survivalRate,
+      mortalityCauses,
+      nextPlantationDate,
+      certificationBody,
+      localTrainingProvided
+    } = req.body;
+
+    // Build the update object
+    const updateData = {
+      mgnrega: {
+        personDays: (personDays !== undefined && personDays !== '') ? Number(personDays) : undefined,
+        wageRate: (wageRate !== undefined && wageRate !== '') ? Number(wageRate) : undefined,
+      },
+      survivalRate: (survivalRate !== undefined && survivalRate !== '') ? Number(survivalRate) : undefined,
+      mortalityCauses: mortalityCauses || '',
+      nextPlantationDate: nextPlantationDate ? new Date(nextPlantationDate) : undefined,
+      certificationBody: certificationBody || '',
+      localTrainingProvided: Boolean(localTrainingProvided)
+    };
+
+    plantation.panchayatData = updateData;
+    plantation.markModified('panchayatData');
+    
+    await plantation.save();
+    console.log(`[PANCHAYAT] Successfully saved data for ${plantation.plantationId}`);
+
+    res.json({
+      success: true,
+      message: 'Panchayat data updated successfully',
+      plantation: plantation.toObject(),
+    });
+  } catch (e) {
+    console.error('CRITICAL ERROR IN /panchayat/plantations/data:', e);
+    res.status(500).json({ 
+      success: false, 
+      message: e.name === 'ValidationError' ? `Validation Error: ${e.message}` : e.message 
+    });
+  }
+});
+
+
+
 // PATCH /api/panchayat/plantations/:id/approve
 router.patch('/plantations/:id/approve', async (req, res) => {
   try {
