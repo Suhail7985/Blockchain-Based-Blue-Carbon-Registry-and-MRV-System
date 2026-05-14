@@ -49,7 +49,6 @@ router.patch(
           errors: errors.array(),
         });
       }
-      const user = await User.findById(req.user.id).select('-password');
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
@@ -352,7 +351,7 @@ router.put(
       user.statusTimeline = [
         { step: 'Email Verified', completed: true, completedAt: user.createdAt },
         { step: 'Identity Verified', completed: true, completedAt: user.identityVerifiedAt || new Date() },
-        { step: 'Land Verified', completed: true, completedAt: new Date() },
+        { step: 'Land Verified', completed: false, notes: 'Under Panchayat Review' },
         { step: 'Account Activated', completed: false, notes: 'Pending Panchayat approval' },
       ];
       await user.save();

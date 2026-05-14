@@ -25,6 +25,8 @@ export const NotificationProvider = ({ children }) => {
   // Track which token_minted notifications we've already announced
   const announcedIds = useRef(new Set());
 
+  const isInitialFetch = useRef(true);
+
   /**
    * Fetch full notification list (called when opening bell dropdown)
    */
@@ -38,23 +40,30 @@ export const NotificationProvider = ({ children }) => {
         setNotifications(incoming);
         setUnreadCount(res.data.unreadCount || 0);
 
-        // Check for new token_minted notifications and trigger voice alert
-        incoming
-          .filter(
-            (n) =>
-              n.type === 'token_minted' &&
-              !n.isRead &&
-              !announcedIds.current.has(n._id)
-          )
-          .forEach((n) => {
-            announcedIds.current.add(n._id);
-            announceTokenCredit({
-              tokens: n.metadata?.tokens,
-              co2eq: n.metadata?.co2eq,
-              plantationId: n.metadata?.plantationId || '',
-              userName: user?.name,
+        if (!isInitialFetch.current) {
+          // Check for new token_minted notifications and trigger voice alert
+          incoming
+            .filter(
+              (n) =>
+                n.type === 'token_minted' &&
+                !n.isRead &&
+                !announcedIds.current.has(n._id)
+            )
+            .forEach((n) => {
+              announcedIds.current.add(n._id);
+              announceTokenCredit({
+                tokens: n.metadata?.tokens || 0,
+                co2eq: n.metadata?.co2eq || 0,
+                plantationId: n.metadata?.plantationId || '',
+                userName: user?.name,
+              });
             });
-          });
+        } else {
+          // Just silently mark them as announced so we don't speak them later
+          incoming.forEach((n) => announcedIds.current.add(n._id));
+        }
+        
+        isInitialFetch.current = false;
       }
     } catch (err) {
       console.error('[Notifications] Fetch failed:', err.message);

@@ -1,9 +1,18 @@
+import { useEffect } from 'react';
+
 /**
  * useVoiceAlert — Web Speech API hook for announcing BCC token credit events.
  * No external libraries needed; works natively in Chrome, Edge, Firefox.
  */
 export function useVoiceAlert() {
   const isSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+  useEffect(() => {
+    if (isSupported) {
+      // Warm up voices
+      window.speechSynthesis.getVoices();
+    }
+  }, [isSupported]);
 
   /**
    * Speak a token minted announcement.
