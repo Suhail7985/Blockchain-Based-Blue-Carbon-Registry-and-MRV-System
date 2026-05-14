@@ -57,6 +57,7 @@ const PanchayatDashboard = () => {
   const [showLandApproveModal, setShowLandApproveModal] = useState(false);
   const [showLandRejectModal, setShowLandRejectModal] = useState(false);
   const [selectedLandUserId, setSelectedLandUserId] = useState(null);
+  const [dbStats, setDbStats] = useState({ total: 0, collection: 'unknown', db: 'unknown' });
 
   const [allPlantations, setAllPlantations] = useState([]);  // for stats
 
@@ -74,7 +75,13 @@ const PanchayatDashboard = () => {
       if (kycRes.success) setManualKyc(kycRes.users || []);
       if (landRes.success) setPendingLand(landRes.users || []);
     } catch (e) {
-      toast.error('Failed to load dashboard data');
+      console.error('Dashboard load error details:', {
+        message: e.message,
+        response: e.response?.data,
+        status: e.response?.status,
+        url: e.config?.url
+      });
+      toast.error(`Failed to load dashboard: ${e.response?.data?.message || e.message}`);
     } finally {
       setLoading(false);
     }
@@ -185,7 +192,7 @@ const PanchayatDashboard = () => {
   const rejectedCount = allPlantations.filter(p => p.status === 'REJECTED').length;
   const totalCarbonInfo = allPlantations
     .filter(p => p.status !== 'PENDING_PANCHAYAT' && p.status !== 'REJECTED')
-    .reduce((acc, p) => acc + (p.carbonCalculation?.co2eq || 0), 0);
+    .reduce((acc, p) => acc + (Number(p.carbonCalculation?.co2eq) || 0), 0);
 
   // Map center from ALL plantations that have GPS coords
   const gpsPlantations = allPlantations.filter(p => p.latitude && p.longitude);
@@ -206,7 +213,9 @@ const PanchayatDashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900">CarbonSetu: Local Panchayat Dashboard</h1>
           <div className="flex items-center gap-2 mt-1 text-bc-green-700">
              <FaLandmark className="w-4 h-4" />
-             <span className="text-sm font-semibold uppercase tracking-wider">Jurisdiction: {user?.district}, {user?.state}</span>
+             <span className="text-sm font-semibold uppercase tracking-wider">
+               Jurisdiction: {user?.panchayatName ? `${user.panchayatName}, ` : ''}{user?.district}, {user?.state}
+             </span>
           </div>
         </div>
         <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-200">
@@ -508,15 +517,11 @@ const PanchayatDashboard = () => {
                           >
                             <FaDatabase className="w-3 h-3" /> Update Survival
                           </button>
-
                           <button
                             onClick={() => { setActionId(p._id); setShowApproveModal(true); }}
-                            className={`px-3 py-1.5 text-white text-xs font-bold rounded-lg shadow-sm transition-all w-full flex items-center justify-center gap-1 ${
-                              p.risk?.riskScore === 'LOW' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'
-                            }`}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all w-full flex items-center justify-center gap-1"
                           >
-                            <FaCheckCircle className="w-3 h-3" />
-                            {p.risk?.riskScore === 'LOW' ? 'Final Verify' : 'Approve & Escalate'}
+                            <FaCheckCircle className="w-3 h-3" /> Final Verify
                           </button>
                           
                           <button
@@ -542,7 +547,9 @@ const PanchayatDashboard = () => {
                 }).length === 0 && (
                   <tr>
                     <td colSpan={filterTab === 'PENDING_PANCHAYAT' ? 7 : 6} className="px-6 py-12 text-center text-gray-500">
-                      No plantations found in this category.
+                      <div className="flex flex-col items-center gap-2">
+                        <span>No plantations found in this category.</span>
+                      </div>
                     </td>
                   </tr>
                 )}

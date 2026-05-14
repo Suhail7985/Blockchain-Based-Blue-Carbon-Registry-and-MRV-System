@@ -2,12 +2,10 @@ import React from 'react';
 import { STATUS_STEPS } from '../../utils/plantationLifecycle';
 
 const STEP_LABELS = {
-  PENDING_PANCHAYAT: 'Panchayat Pending',
-  PENDING_NCCR: 'NCCR Pending',
-  VERIFIED: 'Verified',
-  BLOCKCHAIN_PENDING: 'On-chain Pending',
-  BLOCKCHAIN_CONFIRMED: 'On-chain Confirmed',
-  TOKEN_MINTED: 'Tokens Minted',
+  PENDING_PANCHAYAT: '📋 Submitted',
+  VERIFIED: '🏛️ Panchayat Verified',
+  BLOCKCHAIN_CONFIRMED: '🔗 On Blockchain',
+  TOKEN_MINTED: '🪙 Tokens Issued',
 };
 
 const formatTs = (ts) => {
@@ -36,8 +34,7 @@ const StatusTimeline = ({ status, timestamps = {}, compact = false }) => {
 
   const tsByStep = {
     PENDING_PANCHAYAT: timestamps.submitted,
-    PENDING_NCCR: timestamps.panchayatApproved,
-    VERIFIED: timestamps.nccrApproved,
+    VERIFIED: timestamps.panchayatApproved || timestamps.nccrApproved,
     BLOCKCHAIN_PENDING: timestamps.blockchainPending,
     BLOCKCHAIN_CONFIRMED: timestamps.blockchainConfirmed,
     TOKEN_MINTED: timestamps.tokenMinted,

@@ -9,40 +9,34 @@ import { FaTimes, FaCloudUploadAlt, FaSeedling } from 'react-icons/fa';
 
 const STATUS_CONFIG = {
   PENDING_PANCHAYAT: {
-    label: 'Pending Panchayat',
-    icon: '⏳',
-    bg: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+    label: 'Submitted',
+    icon: '📋',
+    bg: 'bg-blue-50 border-blue-200 text-blue-800',
     step: 0,
   },
-  PENDING_NCCR: {
-    label: 'Pending NCCR',
-    icon: '📤',
-    bg: 'bg-blue-50 border-blue-200 text-blue-800',
-    step: 1,
-  },
   VERIFIED: {
-    label: 'NCCR Approved',
-    icon: '✅',
+    label: 'Panchayat Verified',
+    icon: '🏛️',
     bg: 'bg-green-50 border-green-200 text-green-800',
-    step: 2,
+    step: 1,
   },
   BLOCKCHAIN_PENDING: {
     label: 'Blockchain Pending',
-    icon: '⛓️',
+    icon: '⏳',
     bg: 'bg-purple-50 border-purple-200 text-purple-800',
-    step: 2,
+    step: 1,
   },
   BLOCKCHAIN_CONFIRMED: {
-    label: 'Blockchain Confirmed',
+    label: 'On Blockchain',
     icon: '🔗',
     bg: 'bg-indigo-50 border-indigo-200 text-indigo-800',
-    step: 3,
+    step: 2,
   },
   TOKEN_MINTED: {
     label: 'Tokens Issued',
     icon: '🪙',
     bg: 'bg-emerald-50 border-emerald-200 text-emerald-800',
-    step: 4,
+    step: 3,
   },
   REJECTED: {
     label: 'Rejected',
@@ -55,7 +49,6 @@ const STATUS_CONFIG = {
 const TIMELINE_STEPS = [
   { label: 'Submitted', icon: '📋' },
   { label: 'Panchayat Verified', icon: '🏛️' },
-  { label: 'NCCR Approved', icon: '✅' },
   { label: 'On Blockchain', icon: '🔗' },
   { label: 'Tokens Issued', icon: '🪙' },
 ];
@@ -154,8 +147,8 @@ export default function MyPlantations() {
 
   const filters = [
     { key: 'ALL', label: 'All' },
-    { key: 'PENDING_PANCHAYAT', label: '⏳ Pending' },
-    { key: 'PENDING_NCCR', label: '📤 At NCCR' },
+    { key: 'PENDING_PANCHAYAT', label: '📋 Submitted' },
+    { key: 'VERIFIED', label: '✅ Verified' },
     { key: 'TOKEN_MINTED', label: '🪙 Tokens' },
     { key: 'REJECTED', label: '❌ Rejected' },
   ];

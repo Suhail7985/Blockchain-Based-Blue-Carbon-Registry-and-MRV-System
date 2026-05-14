@@ -73,7 +73,7 @@ router.post('/lands', protect, requireActive, uploadLand, async (req, res) => {
       userId: req.user.id,
       areaHectares: parseFloat(areaHectares),
       status: LAND_STATUS.VERIFIED, // Active users can add verified land immediately
-      documentPath: req.file.path,
+      documentPath: req.file.filename,
       landReference: landReference || 'Additional Land',
       verifiedAt: new Date(),
     });
@@ -121,28 +121,12 @@ router.post(
         return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
       }
 
-      const {
-        landId,
-        speciesName,
-        treeCount,
-        areaHectares,
-        plantationDate,
-        declarationAccepted,
-        state,
-        district,
-        panchayatName,
-        // Role-Based Detailed Data (NGO/Citizen)
-        phaseNumber,
-        speciesDetails,
-        plantingMethod,
-        seedSource,
-        nurseryPartner,
-        labourCost,
-        materialCost,
-        supervisionCost,
-        communityInvolvement,
-        technicalPartner,
-        trainingProvided,
+      const { 
+        landId, speciesName, treeCount, areaHectares, plantationDate, 
+        declarationAccepted, state, district, panchayatName,
+        phaseNumber, plantingMethod, seedSource, nurseryPartner,
+        labourCost, materialCost, supervisionCost, communityInvolvement,
+        technicalPartner, trainingProvided, speciesDetails
       } = req.body;
 
       const land = await Land.findOne({ _id: landId, userId: req.user.id, status: LAND_STATUS.VERIFIED });
@@ -163,6 +147,7 @@ router.post(
         return res.status(400).json({ success: false, message: 'Invalid plantation date.' });
       }
 
+      // Check for duplicate on same day
       const startOfDay = new Date(dateObj);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(dateObj);
@@ -180,7 +165,19 @@ router.post(
         });
       }
 
-      const imagePaths = (req.files || []).map((f) => f.path);
+      const imagePaths = (req.files || []).map((f) => f.filename);
+
+      // Parse speciesDetails if it's a string
+      let parsedSpeciesDetails = [];
+      try {
+        if (typeof speciesDetails === 'string') {
+          parsedSpeciesDetails = JSON.parse(speciesDetails);
+        } else if (Array.isArray(speciesDetails)) {
+          parsedSpeciesDetails = speciesDetails;
+        }
+      } catch (err) {
+        console.warn('Failed to parse speciesDetails:', err);
+      }
 
       const plantationId = generatePlantationId();
       const plantation = await Plantation.create({
@@ -202,10 +199,9 @@ router.post(
         status: PLANTATION_STATUS.PENDING_PANCHAYAT,
         submissionTimestamp: new Date(),
         
-        // Detailed Data (NGO/Citizen)
+        // Advanced SIH/National Data
         plantationDetails: {
           phaseNumber,
-          speciesDetails: Array.isArray(speciesDetails) ? speciesDetails : [],
           plantingMethod,
           seedSource,
           nurseryPartner,
@@ -217,6 +213,7 @@ router.post(
           communityInvolvement,
           technicalPartner,
           trainingProvided: trainingProvided === 'true' || trainingProvided === true,
+          speciesDetails: parsedSpeciesDetails
         },
 
         auditLog: [{ action: 'submitted', userId: req.user.id, timestamp: new Date() }],
@@ -241,86 +238,43 @@ router.post(
   }
 );
 
-// PATCH /api/plantation/:id/resubmit - resubmit a rejected plantation
-router.patch(
-  '/:id/resubmit',
-  uploadPlantationImages,
-  [
-    body('speciesName').optional().trim().notEmpty(),
-    body('treeCount').optional().isInt({ min: 1 }),
-    body('areaHectares').optional().isFloat({ min: 0 }),
-  ],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
-      }
-
-      const plantationId = req.params.id;
-      const plantation = await Plantation.findOne({ _id: plantationId, userId: req.user.id });
-
-      if (!plantation) {
-        return res.status(404).json({ success: false, message: 'Plantation not found' });
-      }
-
-      if (plantation.status !== PLANTATION_STATUS.REJECTED) {
-        return res.status(400).json({ success: false, message: 'Only rejected plantations can be resubmitted' });
-      }
-
-      const { speciesName, treeCount, areaHectares } = req.body;
-
-      if (speciesName) plantation.speciesName = speciesName.trim();
-      if (treeCount) plantation.treeCount = parseInt(treeCount, 10);
-      if (areaHectares) {
-        const areaNum = parseFloat(areaHectares);
-        const land = await Land.findById(plantation.landId);
-        if (land && areaNum > land.areaHectares) {
-          return res.status(400).json({
-            success: false,
-            message: `Plantation area (${areaNum} ha) cannot exceed registered land area (${land.areaHectares} ha).`,
-          });
-        }
-        plantation.areaHectares = areaNum;
-      }
-
-      const newImagePaths = (req.files || []).map((f) => f.path);
-      if (newImagePaths.length > 0) {
-        plantation.imagePaths = [...plantation.imagePaths, ...newImagePaths];
-      }
-
-      // Keep rejection history
-      const rejectHistory = plantation.rejectionHistory || [];
-      rejectHistory.push({
-        status: plantation.status,
-        remarks: plantation.panchayatVerification?.remarks || plantation.nccrVerification?.notes || 'Rejected',
-        timestamp: new Date()
-      });
-      plantation.rejectionHistory = rejectHistory;
-
-      // Reset verify statuses
-      plantation.status = PLANTATION_STATUS.PENDING_PANCHAYAT;
-      plantation.panchayatVerification = undefined;
-      plantation.nccrVerification = undefined;
-      
-      plantation.auditLog = plantation.auditLog || [];
-      plantation.auditLog.push({ action: 'resubmitted', userId: req.user.id, timestamp: new Date() });
-
-      await plantation.save();
-
-      auditLog('PLANTATION_RESUBMIT', req.user.id, 'plantation_resubmitted', {
-        plantationDbId: plantation._id,
-      });
-
-      res.json({
-        success: true,
-        message: 'Plantation resubmitted successfully. Pending Panchayat verification.',
-        plantation: plantation.toObject(),
-      });
-    } catch (e) {
-      res.status(500).json({ success: false, message: e.message || 'Failed to resubmit plantation' });
+// POST /api/plantation/:id/resubmit - Correct and resubmit a rejected plantation
+router.post('/:id/resubmit', uploadPlantationImages, async (req, res) => {
+  try {
+    const plantation = await Plantation.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!plantation) return res.status(404).json({ success: false, message: 'Plantation not found' });
+    if (plantation.status !== PLANTATION_STATUS.REJECTED) {
+      return res.status(400).json({ success: false, message: 'Only rejected plantations can be resubmitted.' });
     }
+
+    const { speciesName, treeCount, areaHectares } = req.body;
+    if (speciesName) plantation.speciesName = speciesName.trim();
+    if (treeCount) plantation.treeCount = parseInt(treeCount, 10);
+    if (areaHectares) plantation.areaHectares = parseFloat(areaHectares);
+
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map((f) => f.filename);
+      plantation.imagePaths = [...(plantation.imagePaths || []), ...newImages];
+    }
+
+    plantation.status = PLANTATION_STATUS.PENDING_PANCHAYAT;
+    plantation.submissionTimestamp = new Date();
+    plantation.auditLog.push({ action: 'resubmitted', userId: req.user.id, timestamp: new Date() });
+
+    await plantation.save();
+
+    auditLog('PLANTATION_RESUBMIT', req.user.id, 'plantation_resubmitted', {
+      plantationId: plantation.plantationId,
+    });
+
+    res.json({
+      success: true,
+      message: 'Plantation resubmitted successfully. Pending Panchayat verification.',
+      plantation,
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
   }
-);
+});
 
 export default router;

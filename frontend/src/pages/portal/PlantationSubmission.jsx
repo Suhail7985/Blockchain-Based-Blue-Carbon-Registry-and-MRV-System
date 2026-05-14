@@ -69,6 +69,13 @@ const PlantationSubmission = () => {
   const [form, setForm] = useState({
     lat: '',
     lng: '',
+    state: user?.state || '',
+    district: user?.district || '',
+    panchayatName: user?.panchayatName || '',
+    speciesName: '', // Added explicit default
+    treeCount: '',
+    areaHectares: '',
+    plantationDate: '',
     declarationAccepted: false,
     speciesName: '',
     otherSpeciesName: '',
@@ -184,8 +191,13 @@ const PlantationSubmission = () => {
     if (selectedLand && form.areaHectares !== '' && parseFloat(form.areaHectares) > (selectedLand.areaHectares || 0)) {
       err.areaHectares = `Area cannot exceed registered land area (${selectedLand.areaHectares} ha)`;
     }
-    setErrors(err);
-    return Object.keys(err).length === 0;
+    const errKeys = Object.keys(err);
+    if (errKeys.length > 0) {
+      setErrors(err);
+      toast.error(`Please fix validation errors: ${err[errKeys[0]]}`);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -257,9 +269,12 @@ const PlantationSubmission = () => {
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to submit plantation.';
-      toast.error(msg);
-      if (err.response?.data?.errors) {
+      if (err.response?.data?.errors && err.response.data.errors.length > 0) {
+        const firstErr = err.response.data.errors[0];
+        toast.error(`${msg}: ${firstErr.msg}`);
         setErrors(err.response.data.errors.reduce((a, e) => ({ ...a, [e.path || e.param]: e.msg }), {}));
+      } else {
+        toast.error(msg);
       }
     } finally {
       setSubmitting(false);
