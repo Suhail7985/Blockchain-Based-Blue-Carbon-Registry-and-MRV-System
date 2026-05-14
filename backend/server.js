@@ -28,7 +28,7 @@ import { authorizeFileAccess } from './middleware/fileAuth.js';
 dotenv.config();
 
 const app = express();
-const PORT = config.port;
+const PORT = config.port; // Trigger restart for profile fixes
 
 // 1. High-Priority CORS & OPTIONS Handler (Must be at the very top)
 const allowedOrigins = [
