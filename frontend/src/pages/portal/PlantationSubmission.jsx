@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { indiaStatesData } from '../../utils/indiaData';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
 import { getVerifiedLands, submitPlantation, getSpecies } from '../../services/api';
@@ -69,6 +70,8 @@ const PlantationSubmission = () => {
     lat: '',
     lng: '',
     declarationAccepted: false,
+    speciesName: '',
+    otherSpeciesName: '',
     // Role-Based Detailed Data (NGO/Citizen)
     phaseNumber: 'Phase 1',
     species1Count: '',
@@ -109,7 +112,11 @@ const PlantationSubmission = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setForm((prev) => {
+      const updated = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      if (name === 'state') updated.district = '';
+      return updated;
+    });
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
@@ -160,7 +167,11 @@ const PlantationSubmission = () => {
   const validate = () => {
     const err = {};
     if (!form.landId) err.landId = 'Select verified land';
-    if (!form.speciesName?.trim()) err.speciesName = 'Species name is required';
+    if (!form.speciesName?.trim()) {
+      err.speciesName = 'Species name is required';
+    } else if (form.speciesName === 'Other' && !form.otherSpeciesName?.trim()) {
+      err.speciesName = 'Please specify the species name';
+    }
     if (!form.treeCount || form.treeCount < 1) err.treeCount = 'Tree count must be at least 1';
     if (form.areaHectares === '' || parseFloat(form.areaHectares) < 0) err.areaHectares = 'Valid area (hectares) is required';
     if (!form.plantationDate) err.plantationDate = 'Plantation date is required';
@@ -183,9 +194,10 @@ const PlantationSubmission = () => {
     if (!validate()) return;
 
     setSubmitting(true);
+    const actualSpeciesName = form.speciesName === 'Other' ? form.otherSpeciesName.trim() : form.speciesName.trim();
     const formData = new FormData();
     formData.append('landId', form.landId);
-    formData.append('speciesName', form.speciesName.trim());
+    formData.append('speciesName', actualSpeciesName);
     formData.append('treeCount', form.treeCount);
     formData.append('areaHectares', form.areaHectares);
     formData.append('plantationDate', form.plantationDate);
@@ -208,7 +220,7 @@ const PlantationSubmission = () => {
 
     // Handle species details array
     const speciesDetails = [
-      { speciesName: form.speciesName, count: parseInt(form.treeCount) || 0 }
+      { speciesName: actualSpeciesName, count: parseInt(form.treeCount) || 0 }
     ];
     if (form.species2Name && form.species2Count) {
       speciesDetails.push({ speciesName: form.species2Name, count: parseInt(form.species2Count) || 0 });
@@ -227,6 +239,7 @@ const PlantationSubmission = () => {
         setForm({
           landId: form.landId,
           speciesName: '',
+          otherSpeciesName: '',
           treeCount: '',
           areaHectares: '',
           plantationDate: '',
@@ -321,7 +334,18 @@ const PlantationSubmission = () => {
                   {s.name} ({s.category})
                 </option>
               ))}
+              <option value="Other">Other</option>
             </select>
+            {form.speciesName === 'Other' && (
+              <input
+                type="text"
+                name="otherSpeciesName"
+                value={form.otherSpeciesName || ''}
+                onChange={handleChange}
+                placeholder="Enter custom species name"
+                className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500"
+              />
+            )}
             {form.speciesName && speciesList.find(s => s.name === form.speciesName) && (
               <p className="mt-1 text-[11px] text-gray-500">
                 Sequestration Basis: ~{speciesList.find(s => s.name === form.speciesName).avgBiomassPerTreeKg}kg biomass/tree
@@ -377,28 +401,38 @@ const PlantationSubmission = () => {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-              <input
-                type="text"
+              <select
                 name="state"
                 value={form.state}
                 onChange={handleChange}
-                placeholder="e.g. West Bengal"
                 disabled={!isActive}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500 disabled:bg-gray-100"
-              />
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500 disabled:bg-gray-100 bg-white"
+              >
+                <option value="">Select State</option>
+                {Object.keys(indiaStatesData).sort().map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+              </select>
               {errors.state && <p className="text-sm text-red-600 mt-1">{errors.state}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">District *</label>
-              <input
-                type="text"
+              <select
                 name="district"
                 value={form.district}
                 onChange={handleChange}
-                placeholder="e.g. South 24 Parganas"
-                disabled={!isActive}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500 disabled:bg-gray-100"
-              />
+                disabled={!isActive || !form.state}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-bc-green-500 focus:border-bc-green-500 disabled:bg-gray-100 bg-white"
+              >
+                <option value="">Select District</option>
+                {form.state && indiaStatesData[form.state]?.sort().map((district) => (
+                  <option key={district} value={district}>
+                    {district}
+                  </option>
+                ))}
+              </select>
               {errors.district && <p className="text-sm text-red-600 mt-1">{errors.district}</p>}
             </div>
           </div>
