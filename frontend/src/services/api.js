@@ -109,6 +109,10 @@ export const panchayatApprovePlantation = (id, remarks) =>
 export const panchayatRejectPlantation = (id, reason) =>
   api.patch(`/panchayat/plantations/${id}/reject`, { reason }).then((r) => r.data);
 
+export const updatePanchayatData = (id, data) =>
+  api.patch(`/panchayat/plantations/${id}/data`, data).then((r) => r.data);
+
+
 // Panchayat - Manual KYC queue
 export const getPanchayatManualKyc = () => api.get('/panchayat/kyc/manual-review').then((r) => r.data);
 export const panchayatApproveManualKyc = (userId, notes) =>

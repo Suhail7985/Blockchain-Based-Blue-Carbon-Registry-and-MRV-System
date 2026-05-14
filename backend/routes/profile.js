@@ -45,9 +45,24 @@ router.patch(
       if (!allowedProfileStatuses.includes(user.accountStatus)) {
         return res.status(400).json({
           success: false,
-          message: 'Use the main profile form with document upload for verification.',
+          message: 'Validation failed',
+          errors: errors.array(),
         });
       }
+      const user = await User.findById(req.user.id).select('-password');
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      // Allow all non-suspended/non-rejected users to update their details
+      const forbiddenStatuses = [ACCOUNT_STATUS.SUSPENDED, ACCOUNT_STATUS.REJECTED];
+      if (forbiddenStatuses.includes(user.accountStatus)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account is suspended or rejected. Please contact support.',
+        });
+      }
+
       const updates = ['name', 'dateOfBirth', 'phone', 'address', 'state', 'district', 'zipCode', 'ngoName', 'ngoRegistrationNumber', 'ownershipType', 'walletAddress'];
       updates.forEach((f) => {
         if (req.body[f] !== undefined) {
@@ -95,7 +110,7 @@ router.put(
   [
     body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Full name required (2-100 chars)'),
     body('dateOfBirth').notEmpty().withMessage('Date of Birth is required'),
-    body('phone').matches(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/).withMessage('Valid phone required'),
+    body('phone').matches(/^[+]?[\d\s-]{10,15}$/).withMessage('Valid phone required'),
     body('address').trim().notEmpty().withMessage('Address is required'),
     body('state').optional({ checkFalsy: true }).trim(),
     body('district').optional({ checkFalsy: true }).trim(),
