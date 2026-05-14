@@ -159,6 +159,8 @@ export const makeUserPanchayat = (userId, payload) =>
 // Marketplace
 export const getMarketplaceListings = () => api.get('/marketplace/listings').then((r) => r.data);
 export const getMarketplaceStats = () => api.get('/marketplace/stats').then((r) => r.data);
+export const buyCredits = (data) => api.post('/marketplace/buy', data).then((r) => r.data);
+export const getMyOrders = () => api.get('/marketplace/my-orders').then((r) => r.data);
 
 // Public
 export const getSpecies = () => api.get('/public/species').then((r) => r.data);

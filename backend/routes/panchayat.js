@@ -25,30 +25,12 @@ router.get('/plantations', async (req, res) => {
     const panchayatUser = await User.findById(req.user.id).select('district state panchayatName').lean();
     const status = req.query.status;
 
-    // 'all' = fetch every status (used for analytics/stats on dashboard)
     const query = {};
     if (status && status !== 'all') {
       query.status = status;
     } else if (!status) {
-      // Default: show pending items only (the action queue)
       query.status = PLANTATION_STATUS.PENDING_PANCHAYAT;
     }
-    // if status === 'all', no status filter — returns everything in jurisdiction
-    
-    // Strict area filtering based on logged-in Panchayat officer's jurisdiction
-    // (query is already initialized and status is handled above)
-
-    /*
-    if (panchayatUser?.state) {
-      query.state = { $regex: new RegExp(`^${panchayatUser.state.trim()}$`, 'i') };
-    }
-    if (panchayatUser?.district) {
-      query.district = { $regex: new RegExp(`^${panchayatUser.district.trim()}$`, 'i') };
-    }
-    if (panchayatUser?.panchayatName) {
-      query.panchayatName = { $regex: new RegExp(`^${panchayatUser.panchayatName.trim()}$`, 'i') };
-    }
-    */
 
     console.log('Panchayat query:', JSON.stringify(query, null, 2));
     const plantations = await Plantation.find(query)

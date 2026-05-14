@@ -231,6 +231,14 @@ const PortalDashboard = () => {
               <h3 className="font-medium text-gray-900">{t('profile')}</h3>
               <p className="text-sm text-gray-500 mt-1">Update your details</p>
             </Link>
+            <Link
+              to="/portal/marketplace"
+              className="p-4 rounded-lg border border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition-colors bg-emerald-50/50"
+            >
+              <FaCoins className="w-8 h-8 text-emerald-600 mb-2" />
+              <h3 className="font-medium text-gray-900">Carbon Marketplace</h3>
+              <p className="text-sm text-gray-500 mt-1">Buy & sell carbon credits in INR</p>
+            </Link>
           </div>
         </section>
       )}

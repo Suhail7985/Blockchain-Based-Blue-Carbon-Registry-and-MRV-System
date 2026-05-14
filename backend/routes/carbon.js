@@ -22,11 +22,18 @@ router.get('/', async (req, res) => {
     );
     let totalCO2 = 0;
     let totalTokens = 0;
+    let totalSubsidy = 0;
     const history = [];
     verified.forEach((p) => {
       if (p.carbonCalculation) {
         totalCO2 += p.carbonCalculation.co2eq || 0;
         totalTokens += p.carbonCalculation.tokens || 0;
+        
+        // MODEL B: Subsidy Tracking
+        if (p.subsidyRecord?.amountPaid) {
+          totalSubsidy += p.subsidyRecord.amountPaid;
+        }
+
         history.push({
           plantationId: p.plantationId,
           date: p.plantationDate,
@@ -35,6 +42,9 @@ router.get('/', async (req, res) => {
           status: p.status,
           blockchainTxHash: p.blockchainTxHash,
           tokenTxHash: p.tokenTxHash,
+          subsidyPaid: p.subsidyRecord?.amountPaid || null,
+          subsidyCurrency: p.subsidyRecord?.currency || null,
+          subsidyTxHash: p.subsidyRecord?.txHash || null,
         });
       }
     });
@@ -45,6 +55,9 @@ router.get('/', async (req, res) => {
     let walletBalance = null;
     let explorerAddressUrl = null;
     if (walletAddress) {
+      // In Model B, citizens hold MATIC (subsidy), not BCC.
+      // We could fetch MATIC balance, but it might be overkill.
+      // Let's keep BCC balance fetch just in case they bought some back.
       walletBalance = await getTokenBalance(walletAddress);
       explorerAddressUrl = getExplorerAddressUrl(walletAddress);
     }
@@ -53,6 +66,7 @@ router.get('/', async (req, res) => {
       success: true,
       totalCO2: Math.round(totalCO2 * 1000) / 1000,
       totalTokens: Math.round(totalTokens * 1000) / 1000,
+      totalSubsidy: Math.round(totalSubsidy * 1000) / 1000,
       verifiedPlantations: verified.length,
       walletAddress: walletAddress || null,
       walletBalance: walletBalance != null ? String(walletBalance) : null,

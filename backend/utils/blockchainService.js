@@ -2,6 +2,10 @@
  * Blockchain Layer - Polygon Amoy testnet
  * Backend handles all contract interactions using ethers.js.
  * NCCR wallet (owner) registers plantation hashes and mints BCC tokens.
+ * 
+ * MODEL B: Government Aggregator
+ * - BCC tokens are minted to the NCCR Treasury wallet (government holds credits)
+ * - Citizens receive an instant MATIC subsidy as reward for planting
  */
 import { ethers } from 'ethers';
 import crypto from 'crypto';
@@ -9,6 +13,13 @@ import crypto from 'crypto';
 const AMOY_RPC = process.env.POLYGON_AMOY_RPC_URL || process.env.AMOY_RPC_URL || 'https://rpc-amoy.polygon.technology';
 const CHAIN_ID = 80002; // Polygon Amoy
 const EXPLORER_URL = 'https://amoy.polygonscan.com';
+
+// Government Treasury: Where all BCC tokens are minted to
+// This is the same as the NCCR wallet (the deployer/owner of the contracts)
+const TREASURY_WALLET_ADDRESS = process.env.TREASURY_WALLET_ADDRESS || null; // Will fallback to NCCR wallet
+
+// Subsidy rate: How much MATIC the government pays per BCC generated
+const SUBSIDY_RATE_MATIC_PER_BCC = parseFloat(process.env.SUBSIDY_RATE_MATIC_PER_BCC || '0.01');
 
 let provider = null;
 let wallet = null;
@@ -164,12 +175,14 @@ export async function storePlantationHash(plantationId, ownerAddress, dataHashHe
 }
 
 /**
- * Mint BCC tokens to user. 1 token = 1 ton CO2eq; token uses 18 decimals.
- * @param {string} toAddress - User wallet (0x...)
+ * MODEL B: Mint BCC tokens to the GOVERNMENT TREASURY wallet.
+ * The citizen does NOT receive BCC — they receive MATIC subsidy instead.
+ * 1 token = 1 ton CO2eq; token uses 18 decimals.
+ * @param {string} _citizenAddress - Citizen wallet (logged only, tokens go to treasury)
  * @param {number} amountTokens - Human-readable tokens (e.g. 0.5)
  * @param {string} _plantationId - For logging only
  */
-export async function mintCarbonToken(toAddress, amountTokens, _plantationId) {
+export async function mintCarbonToken(_citizenAddress, amountTokens, _plantationId) {
   if (!isBlockchainConfigured()) {
     return {
       success: false,
@@ -179,20 +192,16 @@ export async function mintCarbonToken(toAddress, amountTokens, _plantationId) {
     };
   }
 
-  if (!toAddress || toAddress === ethers.ZeroAddress) {
-    return {
-      success: false,
-      error: 'Invalid wallet address',
-      transactionHash: null,
-      amount: amountTokens,
-    };
-  }
-
+  // Mint to Treasury wallet (government), NOT to the citizen
+  const treasuryAddress = TREASURY_WALLET_ADDRESS || getWallet().address;
+  
   try {
     const token = getTokenContract();
     const amountWei = ethers.parseUnits(Number(amountTokens).toFixed(18), 18);
-    const tx = await token.mint(toAddress, amountWei);
+    const tx = await token.mint(treasuryAddress, amountWei);
     const receipt = await tx.wait();
+
+    console.log(`[blockchainService] Minted ${amountTokens} BCC to Treasury (${treasuryAddress}) for plantation ${_plantationId}`);
 
     return {
       success: !!receipt && receipt.status === 1,
@@ -200,6 +209,7 @@ export async function mintCarbonToken(toAddress, amountTokens, _plantationId) {
       blockNumber: receipt?.blockNumber ?? null,
       gasUsed: receipt?.gasUsed?.toString() ?? null,
       amount: amountTokens,
+      mintedTo: treasuryAddress,
       timestamp: new Date().toISOString(),
     };
   } catch (err) {
@@ -211,6 +221,79 @@ export async function mintCarbonToken(toAddress, amountTokens, _plantationId) {
       amount: amountTokens,
     };
   }
+}
+
+/**
+ * MODEL B: Distribute MATIC subsidy from Government Treasury to Citizen.
+ * Called immediately after minting BCC to Treasury.
+ * @param {string} citizenWallet - Citizen's wallet address (0x...)
+ * @param {number} bccAmount - How many BCC were generated (used to calculate subsidy)
+ * @param {string} plantationId - For logging
+ * @returns {Promise<{ success, txHash, subsidyAmount, currency }>}
+ */
+export async function distributeSubsidy(citizenWallet, bccAmount, plantationId) {
+  if (!isBlockchainConfigured()) {
+    return {
+      success: false,
+      error: 'Blockchain not configured',
+      txHash: null,
+      subsidyAmount: 0,
+      currency: 'MATIC',
+    };
+  }
+
+  if (!citizenWallet || citizenWallet === ethers.ZeroAddress) {
+    return {
+      success: false,
+      error: 'Invalid citizen wallet address',
+      txHash: null,
+      subsidyAmount: 0,
+      currency: 'MATIC',
+    };
+  }
+
+  const subsidyAmount = bccAmount * SUBSIDY_RATE_MATIC_PER_BCC;
+
+  try {
+    const signer = getWallet();
+    const amountWei = ethers.parseEther(subsidyAmount.toFixed(18));
+
+    const tx = await signer.sendTransaction({
+      to: citizenWallet,
+      value: amountWei,
+    });
+    const receipt = await tx.wait();
+
+    console.log(`[blockchainService] Distributed ${subsidyAmount} MATIC subsidy to ${citizenWallet} for plantation ${plantationId}`);
+
+    return {
+      success: !!receipt && receipt.status === 1,
+      txHash: receipt?.hash || tx.hash,
+      blockNumber: receipt?.blockNumber ?? null,
+      subsidyAmount,
+      currency: 'MATIC',
+      timestamp: new Date().toISOString(),
+    };
+  } catch (err) {
+    console.error(`[blockchainService] distributeSubsidy error for ${plantationId}:`, err.message);
+    return {
+      success: false,
+      error: err.message,
+      txHash: null,
+      subsidyAmount,
+      currency: 'MATIC',
+    };
+  }
+}
+
+/** Get the current subsidy rate */
+export function getSubsidyRate() {
+  return { rate: SUBSIDY_RATE_MATIC_PER_BCC, currency: 'MATIC', per: 'BCC' };
+}
+
+/** Get the Treasury wallet address */
+export function getTreasuryAddress() {
+  return TREASURY_WALLET_ADDRESS || getWallet()?.address || null;
 }
 
 /** Backwards-compatible alias */

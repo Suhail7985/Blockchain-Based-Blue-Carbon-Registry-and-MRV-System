@@ -20,22 +20,29 @@ router.patch(
   '/',
   protect,
   [
-    body('name').optional().trim().isLength({ min: 2, max: 100 }),
-    body('dateOfBirth').optional(),
-    body('phone').optional().matches(/^[+]?[\d\s-]{10,15}$/).withMessage('Valid phone required'),
-    body('address').optional().trim(),
-    body('state').optional().trim(),
-    body('district').optional().trim(),
-    body('zipCode').optional().trim(),
-    body('ngoName').optional().trim(),
-    body('ngoRegistrationNumber').optional().trim(),
-    body('ownershipType').optional().isIn(['private', 'community']),
-    body('walletAddress').optional().trim().matches(/^0x[a-fA-F0-9]{40}$/).withMessage('Wallet must be a valid Ethereum address (0x + 40 hex)'),
+    body('name').optional({ checkFalsy: true }).trim().isLength({ min: 2, max: 100 }),
+    body('dateOfBirth').optional({ checkFalsy: true }),
+    body('phone').optional({ checkFalsy: true }).matches(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/),
+    body('address').optional({ checkFalsy: true }).trim(),
+    body('state').optional({ checkFalsy: true }).trim(),
+    body('district').optional({ checkFalsy: true }).trim(),
+    body('zipCode').optional({ checkFalsy: true }).trim(),
+    body('ngoName').optional({ checkFalsy: true }).trim(),
+    body('ngoRegistrationNumber').optional({ checkFalsy: true }).trim(),
+    body('ownershipType').optional({ checkFalsy: true }).isIn(['private', 'community']),
+    body('walletAddress').optional({ checkFalsy: true }).trim().matches(/^0x[a-fA-F0-9]{40}$/).withMessage('Wallet must be a valid Ethereum address (0x + 40 hex)'),
   ],
   async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
+      }
+
+      const user = await User.findById(req.user.id).select('-password');
+      const allowedProfileStatuses = [ACCOUNT_STATUS.ACTIVE, ACCOUNT_STATUS.PENDING_VERIFICATION, ACCOUNT_STATUS.MANUAL_REVIEW, ACCOUNT_STATUS.IDENTITY_VERIFIED, ACCOUNT_STATUS.VERIFIED_PENDING_LAND, ACCOUNT_STATUS.PROFILE_INCOMPLETE, ACCOUNT_STATUS.UNVERIFIED_EMAIL];
+      
+      if (!allowedProfileStatuses.includes(user.accountStatus)) {
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
@@ -105,14 +112,14 @@ router.put(
     body('dateOfBirth').notEmpty().withMessage('Date of Birth is required'),
     body('phone').matches(/^[+]?[\d\s-]{10,15}$/).withMessage('Valid phone required'),
     body('address').trim().notEmpty().withMessage('Address is required'),
-    body('state').optional().trim(),
-    body('district').optional().trim(),
-    body('zipCode').optional().trim(),
-    body('ngoName').optional().trim(),
-    body('ngoRegistrationNumber').optional().trim(),
-    body('ownershipType').optional().isIn(['private', 'community']),
-    body('declarationAccepted').optional().isBoolean(),
-    body('walletAddress').optional().trim().matches(/^0x[a-fA-F0-9]{40}$/).withMessage('Wallet must be a valid Ethereum address (0x + 40 hex)'),
+    body('state').optional({ checkFalsy: true }).trim(),
+    body('district').optional({ checkFalsy: true }).trim(),
+    body('zipCode').optional({ checkFalsy: true }).trim(),
+    body('ngoName').optional({ checkFalsy: true }).trim(),
+    body('ngoRegistrationNumber').optional({ checkFalsy: true }).trim(),
+    body('ownershipType').optional({ checkFalsy: true }).isIn(['private', 'community']),
+    body('declarationAccepted').optional({ checkFalsy: true }).isBoolean(),
+    body('walletAddress').optional({ checkFalsy: true }).trim().matches(/^0x[a-fA-F0-9]{40}$/).withMessage('Wallet must be a valid Ethereum address (0x + 40 hex)'),
   ],
   async (req, res) => {
     try {
