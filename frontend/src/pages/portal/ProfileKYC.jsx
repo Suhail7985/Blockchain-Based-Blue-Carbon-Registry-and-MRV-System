@@ -82,14 +82,23 @@ const ProfileKYC = () => {
     setLoading(true);
     try {
       const payload = { ...form };
-      if (payload.walletAddress === '') payload.walletAddress = undefined;
+      // Clean empty strings for optional fields
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === '') payload[key] = undefined;
+      });
+      
       const res = await api.patch('/profile', payload);
       if (res.data.success) {
         toast.success(res.data.message);
         await refreshUser();
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update profile');
+      if (err.response?.data?.errors) {
+        const errorMsgs = err.response.data.errors.map(e => e.msg).join(', ');
+        toast.error(`Validation Error: ${errorMsgs}`);
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to update profile');
+      }
     } finally {
       setLoading(false);
     }
@@ -101,6 +110,27 @@ const ProfileKYC = () => {
       toast.error('Please select an Aadhaar document.');
       return;
     }
+
+    // Check mandatory fields for identity verification
+    const mandatoryFields = {
+      name: 'Legal Name',
+      dateOfBirth: 'Date of Birth',
+      phone: 'Mobile Number',
+      address: 'Full Postal Address',
+      state: 'State',
+      district: 'District'
+    };
+
+    const missingFields = Object.entries(mandatoryFields)
+      .filter(([key]) => !form[key])
+      .map(([_, label]) => label);
+
+    if (missingFields.length > 0) {
+      toast.error(`Please complete your Personal Details first: ${missingFields.join(', ')}`);
+      setActiveTab('personal'); // Switch to personal tab so user can fix it
+      return;
+    }
+
     setLoading(true);
     try {
       const fd = new FormData();
@@ -108,11 +138,11 @@ const ProfileKYC = () => {
       fd.append('dateOfBirth', form.dateOfBirth);
       fd.append('phone', form.phone);
       fd.append('address', form.address);
-      fd.append('state', form.state);
-      fd.append('district', form.district);
-      fd.append('ngoName', form.ngoName);
-      fd.append('ngoRegistrationNumber', form.ngoRegistrationNumber);
-      fd.append('ownershipType', form.ownershipType);
+      fd.append('state', form.state || '');
+      fd.append('district', form.district || '');
+      if (form.ngoName) fd.append('ngoName', form.ngoName);
+      if (form.ngoRegistrationNumber) fd.append('ngoRegistrationNumber', form.ngoRegistrationNumber);
+      if (form.ownershipType) fd.append('ownershipType', form.ownershipType);
       fd.append('declarationAccepted', form.declarationAccepted);
       if (form.zipCode) fd.append('zipCode', form.zipCode);
       if (form.walletAddress) fd.append('walletAddress', form.walletAddress);
@@ -125,7 +155,12 @@ const ProfileKYC = () => {
         await refreshUser();
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit KYC');
+      if (err.response?.data?.errors) {
+        const errorMsgs = err.response.data.errors.map(e => e.msg).join(', ');
+        toast.error(`Validation Error: ${errorMsgs}`);
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to submit KYC');
+      }
     } finally {
       setLoading(false);
     }

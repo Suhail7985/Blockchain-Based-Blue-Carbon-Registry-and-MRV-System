@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaShieldAlt, FaSave, FaTree, FaUsers } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import axios from 'axios';
+import { updatePanchayatData } from '../../services/api';
 
 const PanchayatDataModal = ({ isOpen, onClose, plantation, onSuccess }) => {
   const [loading, setLoading] = useState(false);
@@ -51,19 +51,15 @@ const PanchayatDataModal = ({ isOpen, onClose, plantation, onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.patch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/panchayat/plantations/${plantation._id}/data`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await updatePanchayatData(plantation._id, form);
       
-      if (res.data.success) {
+      if (res.success) {
         toast.success('Panchayat verification data updated');
-        onSuccess(res.data.plantation);
+        onSuccess(res.plantation);
         onClose();
       }
     } catch (err) {
+      console.error('Update Panchayat Data Error:', err);
       toast.error(err.response?.data?.message || 'Failed to update data');
     } finally {
       setLoading(false);
