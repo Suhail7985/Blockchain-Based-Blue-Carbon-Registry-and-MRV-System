@@ -89,7 +89,12 @@ const ProfileKYC = () => {
         await refreshUser();
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update profile');
+      if (err.response?.data?.errors) {
+        const errorMsgs = err.response.data.errors.map(e => e.msg).join(' | ');
+        toast.error(`Validation failed: ${errorMsgs}`);
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to update profile');
+      }
     } finally {
       setLoading(false);
     }
@@ -99,6 +104,11 @@ const ProfileKYC = () => {
     e.preventDefault();
     if (!aadhaarFile && !user?.aadhaarDocumentPath) {
       toast.error('Please select an Aadhaar document.');
+      return;
+    }
+    if (!form.name || !form.dateOfBirth || !form.phone || !form.address) {
+      toast.error('Please complete your Personal Details (Name, DOB, Phone, Address) before submitting KYC.');
+      setActiveTab('personal');
       return;
     }
     setLoading(true);
@@ -125,7 +135,12 @@ const ProfileKYC = () => {
         await refreshUser();
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit KYC');
+      if (err.response?.data?.errors) {
+        const errorMsgs = err.response.data.errors.map(e => e.msg).join(' | ');
+        toast.error(`Validation failed: ${errorMsgs}`);
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to submit KYC');
+      }
     } finally {
       setLoading(false);
     }
