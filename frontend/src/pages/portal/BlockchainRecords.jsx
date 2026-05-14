@@ -60,7 +60,7 @@ const BlockchainRecords = () => {
           </h1>
           <p className="text-gray-500 text-sm mt-1">Immutable proof of sequestration on Polygon Amoy network.</p>
         </div>
-        
+
         <div className="flex gap-3">
           <div className="bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
@@ -125,61 +125,61 @@ const BlockchainRecords = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {loading ? (
-                    <tr>
-                        <td colSpan="6" className="px-6 py-12 text-center text-gray-400 italic">Loading encrypted records...</td>
-                    </tr>
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center text-gray-400 italic">Loading encrypted records...</td>
+                  </tr>
                 ) : entries.map((e) => (
                   <tr key={e._id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-mono font-bold text-gray-900">{e.plantationId}</div>
-                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">LID: {e.landId?.substring(0,8)}...</div>
+                      <div className="text-sm font-mono font-bold text-gray-900">{e.plantationId}</div>
+                      <div className="text-[10px] text-gray-400 font-mono mt-0.5">LID: {e.landId?.substring(0, 8)}...</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1.5">
                         {/* Transaction ID Link (Actual proof on chain) */}
                         {(e.tokenTxHash || e.blockchainTxHash) ? (
-                            (() => {
-                                const tx = e.tokenTxHash || e.blockchainTxHash;
-                                const isValidTx = /^0x([A-Fa-f0-9]{64})$/.test(tx);
-                                return (
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">On-Chain Proof</span>
-                                            {!isValidTx && <span className="text-[9px] bg-amber-50 text-amber-600 px-1 rounded font-bold uppercase border border-amber-100 italic">Test/Mock</span>}
-                                        </div>
-                                        <a 
-                                            href={isValidTx ? (e.tokenTxExplorerUrl || e.blockchainTxExplorerUrl) : '#'} 
-                                            target={isValidTx ? "_blank" : "_self"}
-                                            rel="noopener noreferrer"
-                                            className={`text-[11px] font-mono font-bold flex items-center gap-1 w-fit transition-colors 
+                          (() => {
+                            const tx = e.tokenTxHash || e.blockchainTxHash;
+                            const isValidTx = /^0x([A-Fa-f0-9]{64})$/.test(tx);
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">On-Chain Proof</span>
+                                  {!isValidTx && <span className="text-[9px] bg-amber-50 text-amber-600 px-1 rounded font-bold uppercase border border-amber-100 italic">Test/Mock</span>}
+                                </div>
+                                <a
+                                  href={isValidTx ? (e.tokenTxExplorerUrl || e.blockchainTxExplorerUrl) : '#'}
+                                  target={isValidTx ? "_blank" : "_self"}
+                                  rel="noopener noreferrer"
+                                  className={`text-[11px] font-mono font-bold flex items-center gap-1 w-fit transition-colors 
                                                 ${isValidTx ? 'text-bc-green-600 hover:text-bc-green-700 underline' : 'text-amber-500 cursor-help'}`}
-                                            title={isValidTx ? "View on Blockchain Explorer" : "Mock transaction ID for development purposes."}
-                                            onClick={(ev) => !isValidTx && ev.preventDefault()}
-                                        >
-                                            <FaExternalLinkAlt className="w-2.5 h-2.5" />
-                                            Tx: {tx.substring(0, 12)}...
-                                        </a>
-                                    </div>
-                                );
-                            })()
+                                  title={isValidTx ? "View on Blockchain Explorer" : "Mock transaction ID for development purposes."}
+                                  onClick={(ev) => !isValidTx && ev.preventDefault()}
+                                >
+                                  <FaExternalLinkAlt className="w-2.5 h-2.5" />
+                                  Tx: {tx.substring(0, 12)}...
+                                </a>
+                              </div>
+                            );
+                          })()
                         ) : (
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                                <span className="text-xs text-gray-400 italic">Processing for Chain...</span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                            <span className="text-xs text-gray-400 italic">Processing for Chain...</span>
+                          </div>
                         )}
 
                         {/* Data Fingerprint (SHA-256 for audit) */}
                         {e.blockchainHash && (
-                            <div className="mt-1 pt-1 border-t border-gray-50 flex flex-col">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Data Integrity Hash</span>
-                                <div 
-                                    className="text-[10px] font-mono text-gray-500 hover:text-gray-900 cursor-pointer select-all truncate max-w-[140px]" 
-                                    title={`Full Hash: ${e.blockchainHash}\nClick to select and copy.`}
-                                >
-                                    {e.blockchainHash}
-                                </div>
+                          <div className="mt-1 pt-1 border-t border-gray-50 flex flex-col">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Data Integrity Hash</span>
+                            <div
+                              className="text-[10px] font-mono text-gray-500 hover:text-gray-900 cursor-pointer select-all truncate max-w-[140px]"
+                              title={`Full Hash: ${e.blockchainHash}\nClick to select and copy.`}
+                            >
+                              {e.blockchainHash}
                             </div>
+                          </div>
                         )}
                       </div>
                     </td>
@@ -194,7 +194,7 @@ const BlockchainRecords = () => {
                             {e.subsidyRecord.amountPaid} {e.subsidyRecord.currency}
                           </div>
                           {e.subsidyRecord.txHash && (
-                            <a 
+                            <a
                               href={`https://amoy.polygonscan.com/tx/${e.subsidyRecord.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -235,9 +235,9 @@ const BlockchainRecords = () => {
       )}
 
       {selectedPlantation && (
-        <PlantationHistoryModal 
-          plantation={selectedPlantation} 
-          onClose={() => setSelectedPlantation(null)} 
+        <PlantationHistoryModal
+          plantation={selectedPlantation}
+          onClose={() => setSelectedPlantation(null)}
         />
       )}
     </div>

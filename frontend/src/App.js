@@ -31,7 +31,7 @@ import PanchayatDashboard from './pages/portal/PanchayatDashboard';
 import NccrDashboard from './pages/portal/NccrDashboard';
 import AdminDashboard from './pages/portal/AdminDashboard';
 import NgoDashboard from './pages/portal/NgoDashboard';
-import CarbonLedger from './pages/portal/CarbonLedger';
+
 import './App.css';
 
 function PortalIndex() {
@@ -83,7 +83,7 @@ function App() {
                   <Route path="my-plantations" element={<MyPlantations />} />
                   <Route path="carbon" element={<CarbonCredits />} />
                   <Route path="blockchain" element={<BlockchainRecords />} />
-                  <Route path="ledger" element={<CarbonLedger />} />
+
                   <Route path="panchayat" element={<PanchayatDashboard />} />
                   <Route path="nccr" element={<NccrDashboard />} />
                   <Route path="ngo" element={<NgoDashboard />} />

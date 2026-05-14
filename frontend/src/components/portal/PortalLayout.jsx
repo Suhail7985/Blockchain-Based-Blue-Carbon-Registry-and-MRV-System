@@ -38,8 +38,7 @@ const navItems = [
   { path: '/portal/gis', icon: FaMapMarkedAlt, label: 'GIS Monitoring' },
   { path: '/portal/health', icon: FaHeartbeat, label: 'Health Monitoring' },
   { path: '/portal/carbon', icon: FaCoins, label: 'Carbon Credits' },
-  { path: '/portal/blockchain', icon: FaLink, label: 'Blockchain Records' },
-  { path: '/portal/ledger', icon: FaFileInvoice, label: 'Carbon Ledger' },
+  { path: '/portal/blockchain', icon: FaLink, label: 'Blockchain Ledger' },
 ];
 
 const panchayatNav = { path: '/portal/panchayat', icon: FaLandmark, label: 'Panchayat Verification', roles: ['panchayat'] };
@@ -70,7 +69,7 @@ const PortalLayout = () => {
       'gismonitoring': 'gisMonitoring',
       'healthmonitoring': 'healthMonitoring',
       'carboncredits': 'credits',
-      'blockchainrecords': 'blockchain',
+      'blockchainledger': 'blockchain',
       'notifications': 'notifications',
       'panchayatverification': 'panchayatVerification',
       'nccrapproval': 'nccrApproval',
@@ -135,10 +134,9 @@ const PortalLayout = () => {
                 end={item.path === '/portal'}
                 onClick={(e) => restricted && e.preventDefault()}
                 className={({ isActive: active }) =>
-                  `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${
-                    restricted
-                      ? 'text-gray-400 cursor-not-allowed opacity-60'
-                      : active
+                  `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${restricted
+                    ? 'text-gray-400 cursor-not-allowed opacity-60'
+                    : active
                       ? 'bg-bc-green-50 text-bc-green-700 font-medium'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`
@@ -154,8 +152,7 @@ const PortalLayout = () => {
             <NavLink
               to={panchayatNav.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${
-                  isActive ? 'bg-bc-green-50 text-bc-green-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
+                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${isActive ? 'bg-bc-green-50 text-bc-green-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
                 }`
               }
             >
@@ -167,8 +164,7 @@ const PortalLayout = () => {
             <NavLink
               to={nccrNav.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${
-                  isActive ? 'bg-bc-green-50 text-bc-green-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
+                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${isActive ? 'bg-bc-green-50 text-bc-green-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
                 }`
               }
             >
@@ -180,8 +176,7 @@ const PortalLayout = () => {
             <NavLink
               to={nccrIntelligence.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${
-                  isActive ? 'bg-purple-50 text-purple-700 font-medium border-l-4 border-purple-500' : 'text-gray-700 hover:bg-gray-100'
+                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${isActive ? 'bg-purple-50 text-purple-700 font-medium border-l-4 border-purple-500' : 'text-gray-700 hover:bg-gray-100'
                 }`
               }
             >
@@ -190,16 +185,15 @@ const PortalLayout = () => {
             </NavLink>
           )}
           <NavLink
-              to={marketplaceNav.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${
-                  isActive ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
-                }`
-              }
-            >
-              <FaStore className="w-5 h-5 shrink-0" />
-              <span>{getTranslatedLabel(marketplaceNav.label)}</span>
-            </NavLink>
+            to={marketplaceNav.path}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${isActive ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
+              }`
+            }
+          >
+            <FaStore className="w-5 h-5 shrink-0" />
+            <span>{getTranslatedLabel(marketplaceNav.label)}</span>
+          </NavLink>
         </nav>
       </aside>
 
@@ -229,8 +223,7 @@ const PortalLayout = () => {
                     end={item.path === '/portal'}
                     onClick={() => setSidebarOpen(false)}
                     className={({ isActive: active }) =>
-                      `flex items-center gap-3 px-6 py-3 ${
-                        restricted ? 'text-gray-400' : active ? 'bg-bc-green-50' : ''
+                      `flex items-center gap-3 px-6 py-3 ${restricted ? 'text-gray-400' : active ? 'bg-bc-green-50' : ''
                       }`
                     }
                   >
@@ -276,15 +269,15 @@ const PortalLayout = () => {
                 </NavLink>
               )}
               <NavLink
-                  to={marketplaceNav.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-6 py-3 ${isActive ? 'bg-emerald-50 text-emerald-700' : ''}`
-                  }
-                >
-                  <FaStore className="w-5 h-5" />
-                  <span>{getTranslatedLabel(marketplaceNav.label)}</span>
-                </NavLink>
+                to={marketplaceNav.path}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-6 py-3 ${isActive ? 'bg-emerald-50 text-emerald-700' : ''}`
+                }
+              >
+                <FaStore className="w-5 h-5" />
+                <span>{getTranslatedLabel(marketplaceNav.label)}</span>
+              </NavLink>
             </nav>
           </aside>
         </div>
@@ -310,11 +303,11 @@ const PortalLayout = () => {
 
           <div className="hidden md:block">
             <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-600">
-              {getTranslatedLabel(navItems.find(i => i.path === location.pathname)?.label || 
-               (location.pathname.includes('panchayat') ? 'Panchayat Verification' : '') ||
-               (location.pathname.includes('nccr') ? 'NCCR Approval' : '') || 
-               (location.pathname.includes('marketplace') ? 'Carbon Marketplace' : '') ||
-               'Dashboard')}
+              {getTranslatedLabel(navItems.find(i => i.path === location.pathname)?.label ||
+                (location.pathname.includes('panchayat') ? 'Panchayat Verification' : '') ||
+                (location.pathname.includes('nccr') ? 'NCCR Approval' : '') ||
+                (location.pathname.includes('marketplace') ? 'Carbon Marketplace' : '') ||
+                'Dashboard')}
             </h2>
           </div>
 
@@ -335,11 +328,11 @@ const PortalLayout = () => {
             <NotificationBell />
 
             <div className="text-right ml-1 hidden sm:block">
-               <p className="text-sm font-bold text-gray-900 leading-tight">{user?.name}</p>
-               <p className="text-xs text-gray-500 font-medium">{user?.role === 'admin' ? t('intelligenceLab') : user?.role}</p>
+              <p className="text-sm font-bold text-gray-900 leading-tight">{user?.name}</p>
+              <p className="text-xs text-gray-500 font-medium">{user?.role === 'admin' ? t('intelligenceLab') : user?.role}</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-100 to-teal-100 border border-green-200 flex items-center justify-center text-green-700 font-bold shadow-sm">
-               {user?.name?.charAt(0).toUpperCase() || 'U'}
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <button
               onClick={handleLogout}

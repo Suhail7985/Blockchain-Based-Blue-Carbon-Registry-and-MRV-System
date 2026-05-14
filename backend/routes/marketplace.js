@@ -1,9 +1,8 @@
 /**
  * Marketplace Routes - Government Carbon Credit Storefront
- * MODEL B: Government Aggregator
- * - BCC tokens are held by the NCCR Government Treasury
- * - Credits are auto-listed from verified plantations at fixed ₹1500/BCC rate
- * - Corporate buyers purchase from the Government, not individual citizens
+ * HYBRID MODEL: Government + User Marketplace
+ * - NCCR Government auto-lists verified credits at fixed ₹1500/BCC
+ * - Citizens can ALSO list their personal BCC tokens for sale at their chosen rate
  */
 import express from 'express';
 import { body, validationResult } from 'express-validator';
@@ -13,6 +12,7 @@ import MarketplaceOrder from '../models/MarketplaceOrder.js';
 import Plantation from '../models/Plantation.js';
 import User from '../models/User.js';
 import { auditLog } from '../utils/auditLog.js';
+import { getMarketplaceListings } from '../utils/blockchainService.js';
 
 const router = express.Router();
 const FIXED_PRICE_PER_BCC_INR = 1500;
@@ -25,21 +25,20 @@ function generateOrderId() {
 }
 
 // ────────────────────────────────────────────────────
-// GET /listings — Auto-generated from TOKEN_MINTED plantations
+// GET /listings — Hybrid logic (Government auto + Blockchain peer-to-peer)
 // ────────────────────────────────────────────────────
 router.get('/listings', protect, async (req, res) => {
   try {
+    // 1. Fetch Government "Auto-Listings" from Database
     const plantations = await Plantation.find({
       status: { $in: ['VERIFIED', 'BLOCKCHAIN_CONFIRMED', 'TOKEN_MINTED'] },
       'carbonCalculation.tokens': { $gt: 0 },
     })
-      .populate('userId', 'name email referenceId state district')
-      .populate('landId', 'landArea')
+      .populate('userId', 'name email referenceId state district walletAddress')
       .sort({ updatedAt: -1 })
       .lean();
 
-    // Calculate how many credits have already been sold from each plantation
-    const listings = await Promise.all(
+    const govtListings = await Promise.all(
       plantations.map(async (p) => {
         const soldAgg = await MarketplaceOrder.aggregate([
           { $match: { plantationId: p._id, paymentStatus: 'COMPLETED' } },
@@ -49,49 +48,98 @@ router.get('/listings', protect, async (req, res) => {
         const totalCredits = p.carbonCalculation?.tokens || 0;
         const remainingCredits = Math.max(0, totalCredits - totalSold);
 
-        if (remainingCredits <= 0) return null; // fully sold out
+        if (remainingCredits <= 0) return null;
 
         return {
           _id: p._id,
+          type: 'GOVERNMENT_AGGREGATED',
           plantationId: p.plantationId,
           speciesName: p.speciesName,
-          treeCount: p.treeCount,
-          areaHectares: p.areaHectares,
           location: `${p.district || ''}, ${p.state || ''}`.replace(/^, |, $/g, ''),
-          plantationDate: p.plantationDate,
-          // MODEL B: Seller is the Government Treasury
-          seller: {
-            _id: 'NCCR_TREASURY',
-            name: 'NCCR Government Treasury',
-          },
-          // Original planter info (for ESG traceability / impact reporting)
-          planter: {
-            name: p.userId?.name || 'Verified Citizen',
-            state: p.userId?.state,
-            district: p.userId?.district,
-          },
-          totalCredits,
+          seller: { _id: 'NCCR_TREASURY', name: 'NCCR Government Treasury' },
+          planter: { name: p.userId?.name || 'Verified Citizen' },
           remainingCredits,
           pricePerCreditINR: FIXED_PRICE_PER_BCC_INR,
-          totalValueINR: remainingCredits * FIXED_PRICE_PER_BCC_INR,
           co2eq: p.carbonCalculation?.co2eq || 0,
           blockchainTxHash: p.tokenTxHash || p.blockchainTxHash,
-          subsidyPaid: p.subsidyRecord?.amountPaid || 0,
-          subsidyCurrency: p.subsidyRecord?.currency || 'MATIC',
         };
       })
     );
 
+    // 2. Fetch User "Peer-to-Peer" Listings from Blockchain (if configured)
+    let p2pListings = [];
+    try {
+      const bcListings = await getMarketplaceListings();
+      p2pListings = await Promise.all(bcListings.map(async (bl) => {
+        // Find the user associated with this seller wallet
+        const sellerUser = await User.findOne({ walletAddress: bl.seller.toLowerCase() }).select('name').lean();
+        return {
+          _id: `BC-${bl.listingId}`,
+          listingId: bl.listingId,
+          type: 'PEER_TO_PEER',
+          speciesName: 'User Owned BCC',
+          location: 'Decentralized Wallet',
+          seller: {
+            _id: bl.seller,
+            name: sellerUser?.name || `Wallet ${bl.seller.substring(0, 6)}...`
+          },
+          remainingCredits: parseFloat(bl.amount),
+          pricePerCreditINR: bl.pricePerTokenINR || (parseFloat(bl.pricePerToken) * 250000), // Fallback conversion if ETH based
+          blockchainTxHash: bl.txHash
+        };
+      }));
+    } catch (bcErr) {
+      console.warn('Blockchain listings fetch failed, continuing with DB only');
+    }
+
     res.json({
       success: true,
-      listings: listings.filter(Boolean), // remove nulls (sold out)
-      pricePerCreditINR: FIXED_PRICE_PER_BCC_INR,
+      listings: [...govtListings.filter(Boolean), ...p2pListings],
     });
   } catch (err) {
-    console.error('[marketplace] listings error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// ────────────────────────────────────────────────────
+// POST /list — Allow Users/NCCR to list their tokens
+// ────────────────────────────────────────────────────
+router.post(
+  '/list',
+  protect,
+  requireActive,
+  [
+    body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be at least 0.01'),
+    body('pricePerCreditINR').isFloat({ min: 1 }).withMessage('Price must be at least ₹1'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+      const { amount, pricePerCreditINR } = req.body;
+
+      // In a real blockchain app, the user would sign this on the frontend via Metamask.
+      // For this demo, we'll simulate the intention and provide the user with the steps.
+
+      auditLog('MARKETPLACE_LIST_INTENT', req.user.id, 'user_listing_created', {
+        amount,
+        priceINR: pricePerCreditINR
+      });
+
+      res.json({
+        success: true,
+        message: 'Listing intent recorded. Please sign the transaction in your wallet to finalize.',
+        steps: [
+          'Approve Marketplace contract to spend your BCC tokens',
+          'Call listCredits(tokenAddress, amount, price) on the Smart Contract'
+        ]
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+);
 
 // ────────────────────────────────────────────────────
 // GET /stats — Marketplace overview
@@ -155,9 +203,9 @@ router.post(
       const amount = parseFloat(creditsToBuy);
 
       // Get plantation
-      const plantation = await Plantation.findOne({ 
-        _id: plantationId, 
-        status: { $in: ['VERIFIED', 'BLOCKCHAIN_CONFIRMED', 'TOKEN_MINTED'] } 
+      const plantation = await Plantation.findOne({
+        _id: plantationId,
+        status: { $in: ['VERIFIED', 'BLOCKCHAIN_CONFIRMED', 'TOKEN_MINTED'] }
       }).populate('userId', 'name');
       if (!plantation) {
         return res.status(404).json({ success: false, message: 'Plantation not found or credits not yet available.' });
@@ -236,7 +284,7 @@ router.get('/my-orders', protect, async (req, res) => {
       .populate('sellerId', 'name')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     // Format orders for frontend
     const formattedOrders = orders.map(order => ({
       ...order,
