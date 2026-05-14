@@ -11,30 +11,29 @@ import api, { getCarbonSummary } from '../services/api';
  */
 export default function WalletConnect({ onWalletConnected }) {
   const [walletAddress, setWalletAddress] = useState(null);
-  const [tokenBalance, setTokenBalance] = useState(null);
+  const [maticBalance, setMaticBalance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const hasMetaMask = typeof window !== 'undefined' && Boolean(window.ethereum?.isMetaMask);
 
-  // Fetch token balance from the backend
-  const fetchTokenBalance = useCallback(async (address) => {
-    if (!address) return;
+  // Fetch MATIC balance directly from MetaMask
+  const fetchMaticBalance = useCallback(async (address) => {
+    if (!address || !hasMetaMask) return;
     setLoadingBalance(true);
     try {
-      const res = await getCarbonSummary();
-      if (res.success) {
-        setTokenBalance(parseFloat(res.totalTokens || 0).toFixed(2));
-      } else {
-        setTokenBalance('0.00');
-      }
+      const balanceHex = await window.ethereum.request({
+        method: 'eth_getBalance',
+        params: [address, 'latest'],
+      });
+      const balance = (parseInt(balanceHex, 16) / 1e18).toFixed(4);
+      setMaticBalance(balance);
     } catch (err) {
-      console.error('Failed to fetch token balance:', err);
-      // Fallback UI indication
-      setTokenBalance('Error');
+      console.error('Failed to fetch MATIC balance:', err);
+      setMaticBalance('Error');
     } finally {
       setLoadingBalance(false);
     }
-  }, []);
+  }, [hasMetaMask]);
 
   // Load stored wallet on mount (from server)
   useEffect(() => {
@@ -43,12 +42,12 @@ export default function WalletConnect({ onWalletConnected }) {
         const res = await api.get('/profile');
         if (res.data.profile?.walletAddress) {
           setWalletAddress(res.data.profile.walletAddress);
-          fetchTokenBalance(res.data.profile.walletAddress);
+          fetchMaticBalance(res.data.profile.walletAddress);
         }
       } catch {}
     };
     load();
-  }, [fetchTokenBalance]);
+  }, [fetchMaticBalance]);
 
   // Listen for MetaMask account changes
   useEffect(() => {
@@ -57,19 +56,19 @@ export default function WalletConnect({ onWalletConnected }) {
       if (accounts.length === 0) {
         // Disconnected from MetaMask UI directly
         setWalletAddress(null);
-        setTokenBalance(null);
+        setMaticBalance(null);
       } else if (accounts[0].toLowerCase() !== walletAddress?.toLowerCase()) {
         // Switched accounts; update DB silently
         const newAddress = accounts[0].toLowerCase();
         setWalletAddress(newAddress);
         api.patch('/profile', { walletAddress: newAddress }).catch(console.error);
-        fetchTokenBalance(newAddress);
+        fetchMaticBalance(newAddress);
         onWalletConnected?.(newAddress);
       }
     };
     window.ethereum.on('accountsChanged', handleAccountsChanged);
     return () => window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-  }, [hasMetaMask, walletAddress, fetchTokenBalance, onWalletConnected]);
+  }, [hasMetaMask, walletAddress, fetchMaticBalance, onWalletConnected]);
 
   const connectWallet = async () => {
     if (!hasMetaMask) {
@@ -122,7 +121,7 @@ export default function WalletConnect({ onWalletConnected }) {
       if (res.data.success) {
         setWalletAddress(address);
         toast.success('Wallet connected & linked to registry!');
-        fetchTokenBalance(address);
+        fetchMaticBalance(address);
         onWalletConnected?.(address);
       }
     } catch (err) {
@@ -140,7 +139,7 @@ export default function WalletConnect({ onWalletConnected }) {
     try {
       await api.patch('/profile', { walletAddress: '' });
       setWalletAddress(null);
-      setTokenBalance(null);
+      setMaticBalance(null);
       toast.success('Wallet disconnected from registry.');
     } catch {
       toast.error('Failed to unlink wallet.');
@@ -200,7 +199,7 @@ export default function WalletConnect({ onWalletConnected }) {
           </div>
           
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 min-w-[200px] text-center shadow-inner">
-            <p className="text-xs text-indigo-200 font-medium mb-1 uppercase tracking-wider">Blue Carbon Balance</p>
+            <p className="text-xs text-indigo-200 font-medium mb-1 uppercase tracking-wider">Matic Wallet Balance</p>
             {loadingBalance ? (
               <div className="h-8 flex items-center justify-center">
                 <div className="w-5 h-5 border-2 border-indigo-200 border-t-white rounded-full animate-spin"></div>
@@ -208,12 +207,12 @@ export default function WalletConnect({ onWalletConnected }) {
             ) : (
               <div className="flex items-baseline justify-center gap-1.5">
                 <span className="text-3xl font-bold text-white drop-shadow-md">
-                  {tokenBalance !== null ? tokenBalance : '0.00'}
+                  {maticBalance !== null ? maticBalance : '0.0000'}
                 </span>
-                <span className="text-sm font-semibold text-indigo-300">BCC</span>
+                <span className="text-sm font-semibold text-indigo-300">MATIC</span>
               </div>
             )}
-            <p className="text-[10px] text-indigo-300 mt-2">1 BCC = 1 tCO₂e Sequestered</p>
+            <p className="text-[10px] text-indigo-300 mt-2">Subsidy & Gas Token</p>
           </div>
         </div>
       </div>
@@ -229,8 +228,8 @@ export default function WalletConnect({ onWalletConnected }) {
           </h3>
           <p className="text-sm text-gray-600 max-w-lg">
             {hasMetaMask
-              ? 'Connect your MetaMask wallet to monitor your earned Blue Carbon Credit (BCC) tokens securely on the Polygon Amoy blockchain.'
-              : 'MetaMask is required to interact with the blockchain. Please install the browser extension to receive and view your carbon tokens.'}
+              ? 'Connect your MetaMask wallet to monitor your MATIC wallet balance and securely receive subsidy payouts on the Polygon Amoy blockchain.'
+              : 'MetaMask is required to interact with the blockchain. Please install the browser extension to receive and view your MATIC subsidies.'}
           </p>
         </div>
         <button

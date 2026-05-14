@@ -6,7 +6,9 @@ import { calculateCarbon } from './carbonCalculation.js';
 import { 
   generatePlantationHash, 
   storePlantationHash, 
-  mintCarbonToken 
+  mintCarbonToken,
+  distributeSubsidy,
+  getSubsidyRate,
 } from './blockchainService.js';
 import { PLANTATION_STATUS } from '../constants/plantationStatus.js';
 import { sendPlantationStatusEmail } from './emailService.js';
@@ -140,7 +142,7 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
     }
   }
 
-  // 3. Token Minting
+  // 3. Token Minting (MODEL B: Mint to Treasury, then distribute subsidy to citizen)
   if (plantation.status === PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED && !plantation.tokenTxHash) {
     try {
       if (!userWallet) {
@@ -149,6 +151,7 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
         return plantation;
       }
       
+      // MODEL B: Tokens go to Treasury, NOT to citizen
       const mintResult = await mintCarbonToken(userWallet, carbonCalc.tokens, plantation.plantationId);
       if (mintResult?.success) {
         plantation.tokenTxHash = mintResult.transactionHash;
@@ -158,13 +161,65 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
         // Final Audit Log for minting
         await AuditLog.create({
           plantationId: plantation._id,
-          action: 'token_minted',
+          action: 'token_minted_to_treasury',
           performedBy: officerId,
           role,
           previousStatus: PLANTATION_STATUS.BLOCKCHAIN_CONFIRMED,
           newStatus: plantation.status,
-          details: { txHash: mintResult.transactionHash, amount: carbonCalc.tokens },
+          details: { 
+            txHash: mintResult.transactionHash, 
+            amount: carbonCalc.tokens,
+            mintedTo: mintResult.mintedTo || 'NCCR Treasury',
+          },
         });
+
+        // MODEL B: Distribute MATIC subsidy to citizen
+        const subsidyResult = await distributeSubsidy(userWallet, carbonCalc.tokens, plantation.plantationId);
+        const subsidyRate = getSubsidyRate();
+        
+        if (subsidyResult?.success) {
+          plantation.subsidyRecord = {
+            amountPaid: subsidyResult.subsidyAmount,
+            currency: subsidyResult.currency,
+            txHash: subsidyResult.txHash,
+            blockNumber: subsidyResult.blockNumber,
+            paidAt: new Date(),
+            rate: subsidyRate.rate,
+            bccGenerated: carbonCalc.tokens,
+          };
+          await plantation.save();
+
+          await AuditLog.create({
+            plantationId: plantation._id,
+            action: 'subsidy_distributed',
+            performedBy: officerId,
+            role,
+            details: {
+              subsidyAmount: subsidyResult.subsidyAmount,
+              currency: 'MATIC',
+              citizenWallet: userWallet,
+              txHash: subsidyResult.txHash,
+              rate: subsidyRate.rate,
+            },
+          });
+
+          // Notify citizen about subsidy payment
+          createNotification(plantation.userId._id, 'subsidy_paid', {
+            plantationId: plantation.plantationId,
+            amount: subsidyResult.subsidyAmount,
+            currency: 'MATIC',
+            txHash: subsidyResult.txHash,
+          }).catch(() => {});
+        } else {
+          console.error(`Subsidy distribution failed for ${plantation.plantationId}: ${subsidyResult?.error}`);
+          await AuditLog.create({
+            plantationId: plantation._id,
+            action: 'subsidy_distribution_failed',
+            performedBy: officerId,
+            role,
+            details: { error: subsidyResult?.error || 'Unknown subsidy error' },
+          });
+        }
 
         // Notify user — token_minted triggers voice alert on frontend
         createNotification(plantation.userId._id, 'token_minted', {
@@ -172,6 +227,7 @@ export async function finalizePlantationApproval(plantationId, officerId, role, 
           tokens: carbonCalc.tokens,
           co2eq: carbonCalc.co2eq,
           txHash: mintResult.transactionHash,
+          mintedTo: 'NCCR Government Treasury',
         }).catch(() => {});
       } else {
         console.error(`Token minting failed for ${plantation.plantationId}: ${mintResult?.error}`);

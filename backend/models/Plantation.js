@@ -172,6 +172,16 @@ const plantationSchema = new mongoose.Schema(
     blockchainHash: { type: String },
     blockchainTxHash: { type: String },
     tokenTxHash: { type: String },
+    // Model B: Government subsidy payment to citizen
+    subsidyRecord: {
+      amountPaid: { type: Number },        // e.g. 0.05 MATIC
+      currency: { type: String, default: 'MATIC' },
+      txHash: { type: String },            // Blockchain tx proof
+      blockNumber: { type: Number },
+      paidAt: { type: Date },
+      rate: { type: Number },              // MATIC per BCC at time of payment
+      bccGenerated: { type: Number },      // How many BCC were minted to treasury
+    },
     auditLog: [{ type: mongoose.Schema.Types.Mixed }],
     healthChecks: [{ type: healthCheckSchema }],
     rejectionHistory: [

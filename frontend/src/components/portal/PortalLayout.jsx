@@ -45,7 +45,7 @@ const navItems = [
 const panchayatNav = { path: '/portal/panchayat', icon: FaLandmark, label: 'Panchayat Verification', roles: ['panchayat'] };
 const nccrNav = { path: '/portal/nccr', icon: FaShieldAlt, label: 'NCCR Approval', roles: ['admin', 'verifier'] };
 const nccrIntelligence = { path: '/portal/analysis/advanced', icon: FaBrain, label: 'Intelligence Lab', roles: ['admin', 'verifier'] };
-const marketplaceNav = { path: '/portal/marketplace', icon: FaStore, label: 'CSR Marketplace', roles: ['admin', 'verifier', 'ngo', 'corporate'] };
+const marketplaceNav = { path: '/portal/marketplace', icon: FaStore, label: 'Carbon Marketplace' };
 
 const restrictedPaths = ['/portal/land', '/portal/carbon', '/portal/blockchain'];
 
@@ -189,8 +189,7 @@ const PortalLayout = () => {
               <span>{getTranslatedLabel(nccrIntelligence.label)}</span>
             </NavLink>
           )}
-          {marketplaceNav.roles.includes(user?.role) && (
-            <NavLink
+          <NavLink
               to={marketplaceNav.path}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-6 py-3 mx-2 rounded-lg transition-colors ${
@@ -201,7 +200,6 @@ const PortalLayout = () => {
               <FaStore className="w-5 h-5 shrink-0" />
               <span>{getTranslatedLabel(marketplaceNav.label)}</span>
             </NavLink>
-          )}
         </nav>
       </aside>
 
@@ -277,8 +275,7 @@ const PortalLayout = () => {
                   <span>{getTranslatedLabel(nccrIntelligence.label)}</span>
                 </NavLink>
               )}
-              {marketplaceNav.roles.includes(user?.role) && (
-                <NavLink
+              <NavLink
                   to={marketplaceNav.path}
                   onClick={() => setSidebarOpen(false)}
                   className={({ isActive }) =>
@@ -288,7 +285,6 @@ const PortalLayout = () => {
                   <FaStore className="w-5 h-5" />
                   <span>{getTranslatedLabel(marketplaceNav.label)}</span>
                 </NavLink>
-              )}
             </nav>
           </aside>
         </div>
@@ -317,7 +313,7 @@ const PortalLayout = () => {
               {getTranslatedLabel(navItems.find(i => i.path === location.pathname)?.label || 
                (location.pathname.includes('panchayat') ? 'Panchayat Verification' : '') ||
                (location.pathname.includes('nccr') ? 'NCCR Approval' : '') || 
-               (location.pathname.includes('marketplace') ? 'CSR Marketplace' : '') ||
+               (location.pathname.includes('marketplace') ? 'Carbon Marketplace' : '') ||
                'Dashboard')}
             </h2>
           </div>

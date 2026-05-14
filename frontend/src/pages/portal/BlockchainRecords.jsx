@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import StatusBanner from '../../components/portal/StatusBanner';
 import { ACCOUNT_STATUS } from '../../constants/accountStatus';
 import api from '../../services/api';
-import { FaLink, FaLock, FaExternalLinkAlt, FaHistory, FaCoins, FaCheckDouble } from 'react-icons/fa';
+import { FaLink, FaLock, FaExternalLinkAlt, FaHistory, FaCoins, FaCheckDouble, FaHandHoldingUsd } from 'react-icons/fa';
 import PlantationHistoryModal from '../../components/plantation/PlantationHistoryModal';
 
 const STATUS_BADGES = {
@@ -47,6 +47,7 @@ const BlockchainRecords = () => {
   }
 
   const totalTokens = entries.reduce((acc, curr) => acc + (curr.carbonCalculation?.tokens || 0), 0);
+  const totalSubsidy = entries.reduce((acc, curr) => acc + (curr.subsidyRecord?.amountPaid || 0), 0);
   const totalVerified = entries.filter(e => e.status === 'TOKEN_MINTED' || e.status === 'BLOCKCHAIN_CONFIRMED').length;
 
   return (
@@ -79,6 +80,15 @@ const BlockchainRecords = () => {
               <p className="text-lg font-bold text-gray-900 leading-none">{totalTokens.toFixed(2)}</p>
             </div>
           </div>
+          <div className="bg-white px-4 py-2 rounded-xl border border-emerald-200 shadow-sm flex items-center gap-3 bg-emerald-50/30">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <FaHandHoldingUsd className="text-emerald-600 w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase text-emerald-600 font-bold tracking-wider">Total Subsidy</p>
+              <p className="text-lg font-bold text-gray-900 leading-none">{totalSubsidy.toFixed(4)} MATIC</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -105,8 +115,9 @@ const BlockchainRecords = () => {
               <thead className="bg-gray-50/50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Plantation ID</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Network Proof</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Tokens</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Network Proofs</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">BCC (Treasury)</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-emerald-600 uppercase tracking-wider">Subsidy Paid</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -173,8 +184,29 @@ const BlockchainRecords = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right font-mono">
-                      <div className="text-sm font-bold text-gray-900">{e.carbonCalculation?.tokens ?? '0.00'}</div>
-                      <div className="text-[10px] text-bc-green-600 font-bold uppercase tracking-tight">BCC Credits</div>
+                      <div className="text-sm font-bold text-gray-500">{e.carbonCalculation?.tokens ?? '0.00'}</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Sent to Govt</div>
+                    </td>
+                    <td className="px-6 py-4 text-right font-mono">
+                      {e.subsidyRecord ? (
+                        <>
+                          <div className="text-sm font-bold text-emerald-600">
+                            {e.subsidyRecord.amountPaid} {e.subsidyRecord.currency}
+                          </div>
+                          {e.subsidyRecord.txHash && (
+                            <a 
+                              href={`https://amoy.polygonscan.com/tx/${e.subsidyRecord.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-emerald-500 hover:text-emerald-700 underline font-bold uppercase tracking-tight flex items-center justify-end gap-1 mt-0.5"
+                            >
+                              View Tx <FaExternalLinkAlt className="w-2 h-2" />
+                            </a>
+                          )}
+                        </>
+                      ) : (
+                        <div className="text-sm font-bold text-gray-400 italic">Pending</div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {e.submissionTimestamp ? new Date(e.submissionTimestamp).toLocaleDateString() : '—'}
