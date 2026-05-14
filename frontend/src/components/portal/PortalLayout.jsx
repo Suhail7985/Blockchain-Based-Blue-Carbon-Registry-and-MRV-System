@@ -74,7 +74,7 @@ const PortalLayout = () => {
       'panchayatverification': 'panchayatVerification',
       'nccrapproval': 'nccrApproval',
       'intelligencelab': 'intelligenceLab',
-      'csrmarketplace': 'marketplace'
+      'carbonmarketplace': 'marketplace'
     };
     const translatedKey = keyMap[key] || key;
     return t(translatedKey);

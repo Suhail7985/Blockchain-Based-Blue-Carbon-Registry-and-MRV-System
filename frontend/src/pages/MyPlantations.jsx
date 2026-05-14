@@ -4,53 +4,53 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyPlantations, getSpecies, resubmitPlantation } from '../services/api';
 import WalletConnect from '../components/WalletConnect';
-import { FaTimes, FaCloudUploadAlt, FaSeedling } from 'react-icons/fa';
+import { FaTimes, FaCloudUploadAlt, FaSeedling, FaClipboardList, FaCheckCircle, FaHourglassHalf, FaLink, FaCoins, FaTimesCircle, FaTree, FaWallet, FaLeaf, FaGlobe, FaCalendarAlt, FaMapMarkerAlt, FaSyncAlt, FaInfoCircle, FaPencilAlt, FaPlus } from 'react-icons/fa';
 
 
 const STATUS_CONFIG = {
   PENDING_PANCHAYAT: {
     label: 'Submitted',
-    icon: '📋',
+    icon: <FaClipboardList />,
     bg: 'bg-blue-50 border-blue-200 text-blue-800',
     step: 0,
   },
   VERIFIED: {
     label: 'Panchayat Verified',
-    icon: '🏛️',
+    icon: <FaCheckCircle />,
     bg: 'bg-green-50 border-green-200 text-green-800',
     step: 1,
   },
   BLOCKCHAIN_PENDING: {
     label: 'Blockchain Pending',
-    icon: '⏳',
+    icon: <FaHourglassHalf />,
     bg: 'bg-purple-50 border-purple-200 text-purple-800',
     step: 1,
   },
   BLOCKCHAIN_CONFIRMED: {
     label: 'On Blockchain',
-    icon: '🔗',
+    icon: <FaLink />,
     bg: 'bg-indigo-50 border-indigo-200 text-indigo-800',
     step: 2,
   },
   TOKEN_MINTED: {
     label: 'Tokens Issued',
-    icon: '🪙',
+    icon: <FaCoins />,
     bg: 'bg-emerald-50 border-emerald-200 text-emerald-800',
     step: 3,
   },
   REJECTED: {
     label: 'Rejected',
-    icon: '❌',
+    icon: <FaTimesCircle />,
     bg: 'bg-red-50 border-red-200 text-red-800',
     step: -1,
   },
 };
 
 const TIMELINE_STEPS = [
-  { label: 'Submitted', icon: '📋' },
-  { label: 'Panchayat Verified', icon: '🏛️' },
-  { label: 'On Blockchain', icon: '🔗' },
-  { label: 'Tokens Issued', icon: '🪙' },
+  { label: 'Submitted', icon: <FaClipboardList /> },
+  { label: 'Panchayat Verified', icon: <FaCheckCircle /> },
+  { label: 'On Blockchain', icon: <FaLink /> },
+  { label: 'Tokens Issued', icon: <FaCoins /> },
 ];
 
 function StatusTimeline({ status }) {
@@ -59,7 +59,8 @@ function StatusTimeline({ status }) {
   if (status === 'REJECTED') {
     return (
       <div className="flex items-center gap-2 mt-3 text-red-600 text-xs font-semibold">
-        <span>❌ Rejected — Please re-submit after addressing feedback</span>
+        <FaTimesCircle className="w-4 h-4" />
+        <span>Rejected — Please re-submit after addressing feedback</span>
       </div>
     );
   }
@@ -146,11 +147,11 @@ export default function MyPlantations() {
   const totalTokens = minted.reduce((sum, p) => sum + (p.carbonCalculation?.tokens || 0), 0);
 
   const filters = [
-    { key: 'ALL', label: 'All' },
-    { key: 'PENDING_PANCHAYAT', label: '📋 Submitted' },
-    { key: 'VERIFIED', label: '✅ Verified' },
-    { key: 'TOKEN_MINTED', label: '🪙 Tokens' },
-    { key: 'REJECTED', label: '❌ Rejected' },
+    { key: 'ALL', label: 'All', icon: <FaGlobe /> },
+    { key: 'PENDING_PANCHAYAT', label: 'Submitted', icon: <FaClipboardList /> },
+    { key: 'VERIFIED', label: 'Verified', icon: <FaCheckCircle /> },
+    { key: 'TOKEN_MINTED', label: 'Tokens', icon: <FaCoins /> },
+    { key: 'REJECTED', label: 'Rejected', icon: <FaTimesCircle /> },
   ];
 
   const filtered = filter === 'ALL' ? plantations : plantations.filter(p => p.status === filter);
@@ -161,11 +162,13 @@ export default function MyPlantations() {
       <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-2xl shadow-xl p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-1">🌳 My Plantations</h1>
+            <h1 className="text-3xl font-bold mb-1 flex items-center gap-3">
+              <FaTree className="text-bc-green-100" /> My Plantations
+            </h1>
             <p className="text-white/80">Track your submissions and carbon credit earnings</p>
             {user?.walletAddress && (
-              <p className="text-white/60 text-xs mt-2 font-mono">
-                💼 Wallet: {user.walletAddress.slice(0, 8)}...{user.walletAddress.slice(-6)}
+              <p className="text-white/60 text-xs mt-2 font-mono flex items-center gap-2">
+                <FaWallet /> Wallet: {user.walletAddress.slice(0, 8)}...{user.walletAddress.slice(-6)}
               </p>
             )}
           </div>
@@ -173,7 +176,7 @@ export default function MyPlantations() {
             to="/submit"
             className="bg-white text-green-700 font-bold px-5 py-3 rounded-xl hover:bg-green-50 transition-all shadow-md flex items-center gap-2"
           >
-            ➕ Submit New Plantation
+            <FaPlus /> Submit New Plantation
           </Link>
         </div>
       </div>
@@ -181,26 +184,26 @@ export default function MyPlantations() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon="📋"
+          icon={<FaClipboardList className="text-blue-500" />}
           label="Total Submitted"
           value={totalSubmitted}
           color="border-blue-400"
         />
         <StatCard
-          icon="✅"
+          icon={<FaCheckCircle className="text-green-500" />}
           label="Verified"
           value={verified.length}
           color="border-green-400"
         />
         <StatCard
-          icon="☁️"
+          icon={<FaCloudUploadAlt className="text-teal-500" />}
           label="CO₂ Captured"
           value={`${totalCO2.toFixed(2)} t`}
           sub="tonnes CO₂ equivalent"
           color="border-teal-400"
         />
         <StatCard
-          icon="🪙"
+          icon={<FaCoins className="text-purple-500" />}
           label="BCC Tokens"
           value={totalTokens.toFixed(3)}
           sub="Blue Carbon Credits"
@@ -214,15 +217,15 @@ export default function MyPlantations() {
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`px-4 py-2 rounded-full font-semibold text-sm transition-all ${
+            className={`px-4 py-2 rounded-full font-semibold text-sm transition-all flex items-center gap-2 ${
               filter === f.key
                 ? 'bg-green-600 text-white shadow-md'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300'
             }`}
           >
-            {f.label}
+            {f.icon} {f.label}
             {f.key !== 'ALL' && (
-              <span className="ml-2 bg-white/20 rounded-full px-1.5 text-xs">
+              <span className="ml-1 bg-black/10 rounded-full px-1.5 py-0.5 text-xs">
                 {plantations.filter(p => p.status === f.key).length}
               </span>
             )}
@@ -230,30 +233,30 @@ export default function MyPlantations() {
         ))}
         <button
           onClick={fetchPlantations}
-          className="px-4 py-2 rounded-full font-medium text-sm bg-white text-gray-600 border border-gray-200 hover:border-blue-300 transition-all"
+          className="px-4 py-2 rounded-full font-medium text-sm bg-white text-gray-600 border border-gray-200 hover:border-blue-300 transition-all flex items-center gap-2"
         >
-          🔄 Refresh
+          <FaSyncAlt /> Refresh
         </button>
       </div>
 
       {/* Plantation List */}
       {loading ? (
         <div className="text-center py-16">
-          <div className="text-4xl animate-spin inline-block mb-3">🌀</div>
+          <FaSyncAlt className="text-4xl animate-spin mx-auto mb-3 text-green-500" />
           <p className="text-gray-500">Loading your plantations...</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-md p-12 text-center">
-          <p className="text-5xl mb-4">🌿</p>
+          <FaLeaf className="text-5xl mb-4 mx-auto text-green-500" />
           <p className="text-lg font-semibold text-gray-700">
             {filter === 'ALL' ? 'No plantations yet' : `No ${filter.replace(/_/g, ' ').toLowerCase()} plantations`}
           </p>
           {filter === 'ALL' && (
             <Link
               to="/submit"
-              className="inline-block mt-4 bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all"
+              className="inline-flex mt-4 bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all items-center gap-2"
             >
-              ➕ Submit Your First Plantation
+              <FaPlus /> Submit Your First Plantation
             </Link>
           )}
         </div>
@@ -279,14 +282,14 @@ export default function MyPlantations() {
                   <div>
                     <div className="flex items-center gap-3">
                       <h3 className="text-lg font-bold text-gray-800">{p.speciesName}</h3>
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${sc.bg}`}>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full border flex items-center gap-1.5 ${sc.bg}`}>
                         {sc.icon} {sc.label}
                       </span>
                     </div>
                     <div className="flex flex-col gap-1 mt-1">
-                      <p className="text-xs text-gray-400 font-mono" title="Plantation ID">🆔 {p.plantationId}</p>
+                      <p className="text-xs text-gray-400 font-mono flex items-center gap-1" title="Plantation ID"><FaInfoCircle /> {p.plantationId}</p>
                       {p.landId?.landReference && (
-                        <p className="text-xs text-gray-500" title="Registered Land">🌍 {p.landId.landReference}</p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1" title="Registered Land"><FaMapMarkerAlt /> {p.landId.landReference}</p>
                       )}
                     </div>
                   </div>
@@ -299,15 +302,15 @@ export default function MyPlantations() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-sm">
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
                     <p className="text-gray-400 text-xs">Trees</p>
-                    <p className="font-bold text-gray-800">🌳 {p.treeCount?.toLocaleString()}</p>
+                    <p className="font-bold text-gray-800 flex items-center justify-center gap-1.5"><FaTree className="text-green-600" /> {p.treeCount?.toLocaleString()}</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
                     <p className="text-gray-400 text-xs">Area</p>
-                    <p className="font-bold text-gray-800">📏 {p.areaHectares} ha</p>
+                    <p className="font-bold text-gray-800 flex items-center justify-center gap-1.5"><FaMapMarkerAlt className="text-blue-600" /> {p.areaHectares} ha</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
                     <p className="text-gray-400 text-xs">Planted On</p>
-                    <p className="font-bold text-gray-800">📅 {new Date(p.plantationDate).toLocaleDateString('en-IN')}</p>
+                    <p className="font-bold text-gray-800 flex items-center justify-center gap-1.5"><FaCalendarAlt className="text-purple-600" /> {new Date(p.plantationDate).toLocaleDateString('en-IN')}</p>
                   </div>
                   {p.gpsCoordinates?.lat ? (
                     <div className="bg-gray-50 rounded-lg p-3 text-center">
@@ -316,9 +319,9 @@ export default function MyPlantations() {
                         href={`https://maps.google.com/?q=${p.gpsCoordinates.lat},${p.gpsCoordinates.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-bold text-blue-600 hover:underline text-xs"
+                        className="font-bold text-blue-600 hover:underline text-xs flex items-center justify-center gap-1"
                       >
-                        📍 View Map ↗
+                        <FaMapMarkerAlt /> View Map ↗
                       </a>
                     </div>
                   ) : (
@@ -332,7 +335,7 @@ export default function MyPlantations() {
                 {/* Carbon & Blockchain section for minted */}
                 {hasCarbonData && (
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
-                    <h4 className="text-sm font-semibold text-emerald-800 mb-3">🌿 Carbon Sequestration Report</h4>
+                    <h4 className="text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2"><FaLeaf /> Carbon Sequestration Report</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                       <div className="text-center">
                         <p className="text-emerald-600 text-xs">Biomass</p>
@@ -348,7 +351,7 @@ export default function MyPlantations() {
                       </div>
                       <div className="text-center">
                         <p className="text-emerald-600 text-xs">BCC Tokens</p>
-                        <p className="font-bold text-emerald-900">🪙 {p.carbonCalculation.tokens}</p>
+                        <p className="font-bold text-emerald-900 flex items-center justify-center gap-1.5"><FaCoins className="text-yellow-500" /> {p.carbonCalculation.tokens}</p>
                       </div>
                     </div>
                   </div>
@@ -357,7 +360,7 @@ export default function MyPlantations() {
                 {/* Blockchain info */}
                 {hasBlockchain && (
                   <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-4">
-                    <h4 className="text-sm font-semibold text-purple-800 mb-3">⛓️ Blockchain Records</h4>
+                    <h4 className="text-sm font-semibold text-purple-800 mb-3 flex items-center gap-2"><FaLink /> Blockchain Records</h4>
                     <div className="space-y-2 text-xs">
                       {p.blockchainTxHash && (
                         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -392,13 +395,13 @@ export default function MyPlantations() {
                 {/* Rejection reason & Resubmit */}
                 {p.status === 'REJECTED' && (
                   <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-                    <p className="font-semibold text-red-700 mb-1">❌ Rejection Reason:</p>
+                    <p className="font-semibold text-red-700 mb-1 flex items-center gap-1.5"><FaTimesCircle /> Rejection Reason:</p>
                     <p className="text-red-600 text-sm mb-3">{p.panchayatVerification?.remarks || p.nccrVerification?.notes || 'No specific remarks provided.'}</p>
                     <button
                       onClick={() => setResubmitItem(p)}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-all flex items-center gap-2"
                     >
-                      ✏️ Correct & Resubmit
+                      <FaPencilAlt /> Correct & Resubmit
                     </button>
                   </div>
                 )}
