@@ -465,7 +465,7 @@ const ProfileKYC = () => {
                       <p className="text-gray-500 font-medium text-sm">Registered land parcels approved for sequestration projects.</p>
                     </div>
 
-                    {user?.accountStatus === ACCOUNT_STATUS.ACTIVE || user?.landDocumentPath ? (
+                    {user?.accountStatus === ACCOUNT_STATUS.ACTIVE ? (
                       <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 flex items-center justify-between">
                         <div className="flex items-center gap-6">
                           <div className="p-4 bg-white rounded-2xl text-emerald-600 shadow-sm border border-emerald-50">
@@ -477,6 +477,19 @@ const ProfileKYC = () => {
                           </div>
                         </div>
                         <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-3 py-1 rounded shadow-sm">AUTHENTICATED</span>
+                      </div>
+                    ) : user?.landDocumentPath ? (
+                      <div className="bg-amber-50 border border-amber-100 rounded-3xl p-8 flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                          <div className="p-4 bg-white rounded-2xl text-amber-600 shadow-sm border border-amber-50">
+                            <FaMapMarkedAlt className="w-8 h-8" />
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-black text-amber-900">Land Under Review</h4>
+                            <p className="text-amber-700 font-medium text-sm">Pending Panchayat authentication.</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black bg-amber-100 text-amber-800 px-3 py-1 rounded shadow-sm">PENDING</span>
                       </div>
                     ) : (
                       <form onSubmit={handleLandUpload} className="space-y-6">
